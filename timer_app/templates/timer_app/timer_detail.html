@@ -1,0 +1,163 @@
+{% extends "timer_app/base.html" %}
+{% load timer_filters %}
+
+{% block title %}{{ timer.task_name }} - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' timer.project.customer.pk %}">{{ timer.project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' timer.project.pk %}">{{ timer.project.name }}</a>
+    <span>›</span>
+    <span>{{ timer.task_name }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ timer.task_name }}</h1>
+    <div class="actions">
+        <a href="{% url 'project_detail' timer.project.pk %}" class="btn btn-secondary">Back to Project</a>
+        <a href="{% url 'timer_delete' timer.pk %}" class="btn btn-danger">Delete Timer</a>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Details</h3>
+    <p><strong>Project:</strong> <a href="{% url 'project_detail' timer.project.pk %}">{{ timer.project.name }}</a></p>
+    <p><strong>Customer:</strong> <a href="{% url 'customer_detail' timer.project.customer.pk %}">{{ timer.project.customer.name }}</a></p>
+    <p><strong>Price Per Hour:</strong> {{ timer.price_per_hour|format_currency }}</p>
+    <p><strong>Status:</strong> 
+        {% if timer.is_running %}
+        <span class="timer-running">RUNNING</span>
+        {% else %}
+        <span class="timer-stopped">STOPPED</span>
+        {% endif %}
+    </p>
+    <p><strong>Total Time:</strong> {{ timer.total_duration_seconds|format_duration }}</p>
+    <p><strong>Total Cost:</strong> {{ timer.total_cost|format_currency }}</p>
+    <p><strong>Sessions:</strong> {{ sessions.count }}</p>
+</div>
+
+<h2 style="margin-top: 2rem; margin-bottom: 1rem;">Sessions</h2>
+
+{% if sessions %}
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Duration</th>
+                <th>Cost</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions %}
+            <tr>
+                <td>{{ session.start_time|date:"Y-m-d H:i:s" }}</td>
+                <td>
+                    {% if session.end_time %}
+                        {{ session.end_time|date:"Y-m-d H:i:s" }}
+                    {% else %}
+                        <span class="timer-running">ACTIVE</span>
+                    {% endif %}
+                </td>
+                <td>{{ session.duration_seconds|format_duration }}</td>
+                <td>{{ session.cost|format_currency }}</td>
+                <td>
+                    <div class="session-note" data-session-id="{{ session.pk }}">
+                        <span class="note-display">
+                            {% if session.note %}
+                                {{ session.note }}
+                            {% else %}
+                                <em style="color: #999;">No note</em>
+                            {% endif %}
+                        </span>
+                        <button class="btn btn-small btn-secondary edit-note" data-session-id="{{ session.pk }}" data-note="{{ session.note }}">Edit</button>
+                    </div>
+                </td>
+                <td class="actions">
+                    <a href="{% url 'session_delete' session.pk %}" class="btn btn-small btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p>No sessions yet. Start the timer to create your first session!</p>
+</div>
+{% endif %}
+
+<!-- Edit Note Modal -->
+<div id="editNoteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">Edit Session Note</div>
+        <div class="form-group">
+            <label for="editSessionNote" class="form-label">Note:</label>
+            <textarea id="editSessionNote" class="form-textarea" rows="4" placeholder="Describe what you worked on..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button id="saveEditNote" class="btn">Save</button>
+            <button id="cancelEditNote" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let editingSessionId = null;
+
+    // Edit note buttons
+    document.querySelectorAll('.edit-note').forEach(button => {
+        button.addEventListener('click', function() {
+            editingSessionId = this.dataset.sessionId;
+            const currentNote = this.dataset.note;
+            document.getElementById('editSessionNote').value = currentNote;
+            document.getElementById('editNoteModal').classList.add('active');
+        });
+    });
+
+    // Save edited note
+    document.getElementById('saveEditNote').addEventListener('click', function() {
+        const note = document.getElementById('editSessionNote').value;
+        
+        fetch(`/sessions/${editingSessionId}/note/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ note: note })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred saving the note');
+        });
+    });
+
+    // Cancel edit note
+    document.getElementById('cancelEditNote').addEventListener('click', function() {
+        document.getElementById('editNoteModal').classList.remove('active');
+        document.getElementById('editSessionNote').value = '';
+    });
+</script>
+{% endblock %}
+
