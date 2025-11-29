@@ -21,7 +21,7 @@ def format_duration(seconds):
 def format_currency(value):
     """Format value as currency"""
     try:
-        return f"${float(value):.2f}"
+        return f"£{float(value):.2f}"
     except (ValueError, TypeError):
-        return "$0.00"
+        return "£0.00"
 

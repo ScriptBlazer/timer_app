@@ -48,3 +48,23 @@ class SessionNoteForm(forms.ModelForm):
             'note': forms.Textarea(attrs={'class': 'form-input', 'placeholder': 'Describe what you worked on...', 'rows': 4}),
         }
 
+
+class SessionEditForm(forms.ModelForm):
+    class Meta:
+        model = TimerSession
+        fields = ['start_time', 'end_time', 'note']
+        widgets = {
+            'start_time': forms.DateTimeInput(attrs={'class': 'form-input', 'type': 'datetime-local'}),
+            'end_time': forms.DateTimeInput(attrs={'class': 'form-input', 'type': 'datetime-local'}),
+            'note': forms.Textarea(attrs={'class': 'form-input', 'placeholder': 'Describe what you worked on...', 'rows': 4}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Format datetime fields for HTML5 datetime-local input
+        if self.instance and self.instance.pk:
+            if self.instance.start_time:
+                self.initial['start_time'] = self.instance.start_time.strftime('%Y-%m-%dT%H:%M')
+            if self.instance.end_time:
+                self.initial['end_time'] = self.instance.end_time.strftime('%Y-%m-%dT%H:%M')
+
