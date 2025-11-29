@@ -88,14 +88,18 @@
     }
     
     .timer-actions {
-        display: inline-flex;
+        display: flex;
+        flex-direction: row;
         gap: 0.5rem;
+        align-items: center;
+        flex-wrap: nowrap;
     }
     
     .btn-icon {
         padding: 0.4rem 0.75rem;
         font-size: 0.875rem;
         white-space: nowrap;
+        flex-shrink: 0;
     }
     
     .empty-state {
@@ -115,13 +119,12 @@
     <div class="admin-title">
         <h1>Admin Panel</h1>
     </div>
-    <a href="{% url 'timer_create' %}" class="btn btn-success">+ Create New Timer</a>
 </div>
 
 {% if not is_owner %}
 <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
     <p style="margin: 0; color: #856404;">
-        <strong>🔒 Access Restricted</strong><br>
+        <strong><i class="far fa-lock"></i> Access Restricted</strong><br>
         This page is only accessible to workspace owners. You are a team member in <strong>{{ workspace_owner.username }}'s</strong> workspace.
     </p>
 </div>
@@ -151,8 +154,9 @@
 {% endif %}
 
 <div class="card">
-    <div class="card-header">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
         <h3>Timer Management</h3>
+        <a href="{% url 'timer_create' %}" class="btn btn-success" style="padding: 0.5rem 1rem; font-size: 0.875rem;">+ New Timer</a>
     </div>
     
     <p style="padding: 0 1.5rem; color: #666; margin-bottom: 1.5rem;">
@@ -202,13 +206,47 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <div class="empty-state-icon">⏲️</div>
+        <div class="empty-state-icon"><i class="far fa-clock"></i></div>
         <h3>No timers yet</h3>
         <p>Create your first timer template to get started.</p>
         <a href="{% url 'timer_create' %}" class="btn btn-success" style="margin-top: 1rem;">+ Create Timer</a>
     </div>
     {% endif %}
 </div>
+
+<!-- Pending Registrations (Owner Only) - Read Only -->
+{% if is_owner and pending_registrations %}
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3>Pending Registrations</h3>
+    </div>
+    
+    <p style="padding: 0 1.5rem; color: #666; margin-bottom: 1.5rem;">
+        The following registrations are awaiting approval. Approve or deny them via Telegram notification.
+    </p>
+    
+    <div class="timer-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Requested</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pending in pending_registrations %}
+                <tr>
+                    <td><span class="timer-name">{{ pending.username }}</span></td>
+                    <td>{{ pending.email }}</td>
+                    <td class="timer-stats">{{ pending.created_at|date:"M d, Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 
 <!-- Team Management (Owner Only) -->
 {% if is_owner %}
@@ -281,7 +319,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <div class="empty-state-icon">👥</div>
+        <div class="empty-state-icon"><i class="far fa-user"></i></div>
         <h3>No team members yet</h3>
         <p>Create user accounts for your team members so they can access your workspace.</p>
     </div>
@@ -342,7 +380,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <div class="empty-state-icon">👥</div>
+        <div class="empty-state-icon"><i class="fas fa-users"></i></div>
         <h3>No customers yet</h3>
         <p>Add your first customer to get started.</p>
         <a href="{% url 'customer_add' %}" class="btn btn-success" style="margin-top: 1rem;">+ Add Customer</a>
@@ -416,7 +454,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-icon"><i class="far fa-folder"></i></div>
         <h3>No projects yet</h3>
         <p>Add customers first, then create projects for them.</p>
     </div>
@@ -438,9 +476,9 @@
         
         <h4 style="margin-top: 1.5rem;">Workspace Owner vs Team Members:</h4>
         <ul style="line-height: 1.8;">
-            <li><strong>👑 You (Owner)</strong> - Full control: create, edit, delete everything + manage team members.</li>
-            <li><strong>👥 Team Members</strong> - Can create and edit data, start/stop timers, but cannot delete or access admin.</li>
-            <li>💡 All users in your workspace share the same customers, projects, and timers.</li>
+            <li><strong><i class="far fa-star"></i> You (Owner)</strong> - Full control: create, edit, delete everything + manage team members.</li>
+            <li><strong><i class="far fa-user"></i> Team Members</strong> - Can create and edit data, start/stop timers, but cannot delete or access admin.</li>
+            <li><i class="far fa-lightbulb"></i> All users in your workspace share the same customers, projects, and timers.</li>
         </ul>
     </div>
 </div>

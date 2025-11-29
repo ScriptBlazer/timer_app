@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Timer Tracker{% endblock %}</title>
+    <!-- Font Awesome for outline/stroke icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         * {
             margin: 0;
@@ -120,6 +122,23 @@
             font-size: 1.5rem;
             width: 30px;
             text-align: center;
+        }
+        
+        .sidebar-link-icon i {
+            color: inherit;
+        }
+        
+        /* Font Awesome icon styling */
+        .far, .fas, .fal {
+            color: inherit;
+        }
+        
+        .empty-state-icon i,
+        .success-icon i,
+        .error-icon i,
+        .pending-icon i {
+            font-size: inherit;
+            color: inherit;
         }
 
         .sidebar-footer {
@@ -888,15 +907,15 @@
         
             <nav class="sidebar-nav">
                 <a href="{% url 'customer_list' %}" class="sidebar-link">
-                    <span class="sidebar-link-icon">👥</span>
+                    <span class="sidebar-link-icon"><i class="fas fa-users"></i></span>
                     <span>Customers</span>
                 </a>
                 <a href="{% url 'project_list' %}" class="sidebar-link">
-                    <span class="sidebar-link-icon">📁</span>
+                    <span class="sidebar-link-icon"><i class="far fa-folder"></i></span>
                     <span>Projects</span>
                 </a>
                 <a href="{% url 'running_timers' %}" class="sidebar-link">
-                    <span class="sidebar-link-icon">▶️</span>
+                    <span class="sidebar-link-icon"><i class="far fa-play-circle"></i></span>
                     <span>Running Timers</span>
                 </a>
             </nav>

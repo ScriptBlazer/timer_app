@@ -2,6 +2,22 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+import uuid
+
+
+class PendingRegistration(models.Model):
+    """Stores pending user registrations awaiting approval"""
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField()
+    password_hash = models.CharField(max_length=128)  # Store hashed password
+    approval_token = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Pending: {self.username}"
 
 
 class TeamMember(models.Model):

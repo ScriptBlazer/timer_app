@@ -11,6 +11,11 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     
+    # Registration Approval
+    path('registration/approve/<uuid:token>/', views.approve_registration, name='approve_registration'),
+    path('registration/deny/<uuid:token>/', views.deny_registration, name='deny_registration'),
+    path('registration/resend/<uuid:token>/', views.resend_approval_notification, name='resend_approval_notification'),
+    
     # Password Reset
     path('password-reset/', 
          auth_views.PasswordResetView.as_view(
