@@ -17,6 +17,10 @@
             line-height: 1.6;
             color: #333;
             background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            min-height: 100vh;
         }
 
         /* Clean link styling for names */
@@ -30,16 +34,19 @@
             opacity: 0.7;
         }
 
-        /* Keep underlines for specific navigation elements */
-        .breadcrumb a,
-        .navbar-menu a,
-        .btn-link {
+        /* Breadcrumb links */
+        .breadcrumb a {
             color: #3498db;
         }
 
         .breadcrumb a:hover {
             text-decoration: underline;
             opacity: 1;
+        }
+
+        /* Button-style links */
+        .btn-link {
+            color: #3498db;
         }
 
         /* Bold styling for name links in tables and cards */
@@ -57,60 +64,122 @@
             opacity: 1;
         }
 
-        .navbar {
-            background-color: #2c3e50;
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 280px;
+            background: #2c3e50;
             color: white;
-            padding: 1rem 2rem;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+            z-index: 1000;
         }
 
-        .navbar-brand {
+        .sidebar-brand {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .brand-name {
             font-size: 1.5rem;
             font-weight: bold;
             color: white;
             text-decoration: none;
+            display: block;
         }
 
-        .navbar-menu {
+        .sidebar-nav {
+            flex: 1;
+            padding: 2rem 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-link {
             display: flex;
-            gap: 1.5rem;
             align-items: center;
-        }
-
-        .navbar-menu a {
-            color: white;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
             text-decoration: none;
             transition: all 0.2s;
-        }
-
-        .navbar-menu a:hover {
-            opacity: 0.8;
-        }
-
-        .navbar-link {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
             font-weight: 500;
+            font-size: 1rem;
         }
 
-        .navbar-link:hover {
-            background: rgba(255, 255, 255, 0.2);
-            opacity: 1;
+        .sidebar-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .sidebar-link-icon {
+            font-size: 1.5rem;
+            width: 30px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .user-name {
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar-logout {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background: #e74c3c;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .sidebar-logout:hover {
+            background: #c0392b;
+        }
+
+        /* Main content area */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
+            width: 100%;
             margin: 0 auto;
             padding: 2rem;
+            flex: 1;
         }
 
         .breadcrumb {
             background-color: white;
-            padding: 0.75rem 2rem;
-            border-bottom: 1px solid #ddd;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
         }
 
         .breadcrumb a {
@@ -511,6 +580,7 @@
             text-decoration: underline;
         }
 
+        .btn-edit-timer,
         .btn-delete-timer {
             font-size: 1.25rem;
             text-decoration: none;
@@ -519,6 +589,7 @@
             cursor: pointer;
         }
 
+        .btn-edit-timer:hover,
         .btn-delete-timer:hover {
             opacity: 1;
             transform: scale(1.2);
@@ -740,32 +811,52 @@
 </head>
 <body>
     {% if user.is_authenticated %}
-     <nav class="navbar">
-         <a href="{% url 'home' %}" class="navbar-brand">Timer Tracker</a>
-         <div class="navbar-menu">
-             <a href="{% url 'customer_list' %}" class="navbar-link">Customers</a>
-             <a href="{% url 'project_list' %}" class="navbar-link">Projects</a>
-             <a href="{% url 'running_timers' %}" class="navbar-link">Running Timers</a>
-             <span>|</span>
-             <span>{{ user.username }}</span>
-             <a href="{% url 'logout' %}">Logout</a>
-         </div>
-     </nav>
-     {% endif %}
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <a href="{% url 'home' %}" class="brand-name">Timer Tracker</a>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="{% url 'customer_list' %}" class="sidebar-link">
+                <span class="sidebar-link-icon">👥</span>
+                <span>Customers</span>
+            </a>
+            <a href="{% url 'project_list' %}" class="sidebar-link">
+                <span class="sidebar-link-icon">📁</span>
+                <span>Projects</span>
+            </a>
+            <a href="{% url 'running_timers' %}" class="sidebar-link">
+                <span class="sidebar-link-icon">⏱️</span>
+                <span>Running Timers</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="user-name">{{ user.username }}</div>
+            </div>
+            <a href="{% url 'logout' %}" class="sidebar-logout">Logout</a>
+        </div>
+    </aside>
 
-    {% block breadcrumb %}{% endblock %}
+    <!-- Main Content Area -->
+    <div class="main-content">
+        {% block breadcrumb %}{% endblock %}
+        
+        <div class="container">
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li class="message {{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
 
-    <div class="container">
-        {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-            <li class="message {{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-
-        {% block content %}{% endblock %}
+            {% block content %}{% endblock %}
+        </div>
     </div>
+    {% endif %}
 
     <script>
         // CSRF token for AJAX requests

@@ -9,7 +9,7 @@ from django.db.models import Q
 import json
 
 from .models import Customer, Project, Timer, TimerSession
-from .forms import RegisterForm, CustomerForm, ProjectForm, TimerForm, SessionNoteForm
+from .forms import RegisterForm, CustomerForm, ProjectForm, TimerForm, SessionNoteForm, SessionEditForm
 
 
 def home(request):
@@ -294,6 +294,33 @@ def timer_detail(request, pk):
 
 
 @login_required
+def timer_edit(request, pk):
+    """Edit a timer"""
+    timer = get_object_or_404(Timer, pk=pk)
+    
+    # Check permission
+    if timer.project.customer.user != request.user:
+        messages.error(request, 'You do not have permission to edit this timer.')
+        return redirect('customer_list')
+    
+    if request.method == 'POST':
+        form = TimerForm(request.POST, instance=timer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Timer "{timer.task_name}" updated successfully!')
+            return redirect('project_detail', pk=timer.project.pk)
+    else:
+        form = TimerForm(instance=timer)
+    
+    return render(request, 'timer_app/timer_form.html', {
+        'form': form,
+        'title': 'Edit Timer',
+        'project': timer.project,
+        'timer': timer
+    })
+
+
+@login_required
 def timer_delete(request, pk):
     """Delete a timer"""
     timer = get_object_or_404(Timer, pk=pk)
@@ -405,6 +432,31 @@ def session_update_note(request, pk):
             'success': False,
             'error': 'Invalid JSON'
         }, status=400)
+
+
+@login_required
+def session_edit(request, pk):
+    """Edit a session's times and note"""
+    session = get_object_or_404(TimerSession, pk=pk)
+    
+    # Check permission
+    if session.timer.project.customer.user != request.user:
+        messages.error(request, 'You do not have permission to edit this session.')
+        return redirect('customer_list')
+    
+    if request.method == 'POST':
+        form = SessionEditForm(request.POST, instance=session)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Session updated successfully!')
+            return redirect('project_detail', pk=session.timer.project.pk)
+    else:
+        form = SessionEditForm(instance=session)
+    
+    return render(request, 'timer_app/session_edit.html', {
+        'form': form,
+        'session': session
+    })
 
 
 @login_required

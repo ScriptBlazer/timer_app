@@ -30,12 +30,14 @@ urlpatterns = [
     path('timers/running/', views.running_timers, name='running_timers'),
     path('timers/add/', views.timer_add, name='timer_add'),
     path('timers/<int:pk>/', views.timer_detail, name='timer_detail'),
+    path('timers/<int:pk>/edit/', views.timer_edit, name='timer_edit'),
     path('timers/<int:pk>/delete/', views.timer_delete, name='timer_delete'),
     path('timers/<int:pk>/start/', views.timer_start, name='timer_start'),
     path('timers/<int:pk>/stop/', views.timer_stop, name='timer_stop'),
     
     # Sessions
     path('sessions/<int:pk>/note/', views.session_update_note, name='session_update_note'),
+    path('sessions/<int:pk>/edit/', views.session_edit, name='session_edit'),
     path('sessions/<int:pk>/delete/', views.session_delete, name='session_delete'),
 ]
 

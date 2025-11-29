@@ -102,7 +102,10 @@
                     <button class="btn-link toggle-sessions" data-timer-id="{{ timer.pk }}">
                         <span class="toggle-icon">▼</span> View Sessions ({{ timer.sessions.count }})
                     </button>
-                    <a href="{% url 'timer_delete' timer.pk %}" class="btn-delete-timer" title="Delete timer">🗑️</a>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <a href="{% url 'timer_edit' timer.pk %}" class="btn-edit-timer" title="Edit timer">✏️</a>
+                        <a href="{% url 'timer_delete' timer.pk %}" class="btn-delete-timer" title="Delete timer">🗑️</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,6 +145,7 @@
                         <div class="session-note-hint">Click to edit • Changes save automatically</div>
                     </div>
                     <div class="session-actions">
+                        <a href="{% url 'session_edit' session.pk %}" class="btn btn-small btn-secondary">Edit Time</a>
                         <button class="btn btn-small btn-danger delete-session" data-session-id="{{ session.pk }}">Delete Session</button>
                     </div>
                 </div>
