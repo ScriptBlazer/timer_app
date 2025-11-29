@@ -4,6 +4,26 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 
+class TeamMember(models.Model):
+    """Links team members to workspace owners"""
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('member', 'Member'),
+    ]
+    
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='team_owner')
+    member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='team_member')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['owner', 'member']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.member.username} in {self.owner.username}'s workspace"
+
+
 class Customer(models.Model):
     """A customer/client that belongs to a user"""
     name = models.CharField(max_length=200)
@@ -54,34 +74,48 @@ class Project(models.Model):
     def total_duration_seconds(self):
         """Calculate total duration across all timers in seconds"""
         total = 0
-        for timer in self.timers.all():
-            total += timer.total_duration_seconds()
+        for project_timer in self.project_timers.all():
+            total += project_timer.total_duration_seconds()
         return total
 
     def total_cost(self):
         """Calculate total cost across all timers"""
         total = 0
-        for timer in self.timers.all():
-            total += timer.total_cost()
+        for project_timer in self.project_timers.all():
+            total += project_timer.total_cost()
         return round(total, 2)
 
 
 class Timer(models.Model):
-    """A timer/task belonging to a project"""
+    """A global timer template belonging to a user"""
     task_name = models.CharField(max_length=200)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='timers')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='timers')
     price_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        ordering = ['task_name']
+
+    def __str__(self):
+        return self.task_name
+
+
+class ProjectTimer(models.Model):
+    """Junction table linking timers to projects"""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_timers')
+    timer = models.ForeignKey(Timer, on_delete=models.CASCADE, related_name='project_timers')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['project', 'timer']
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.task_name} - {self.project.name}"
+        return f"{self.timer.task_name} on {self.project.name}"
 
     def is_running(self):
-        """Check if this timer has an active session"""
+        """Check if this timer has an active session on this project"""
         return self.sessions.filter(end_time__isnull=True).exists()
 
     def active_session(self):
@@ -104,17 +138,21 @@ class Timer(models.Model):
         return total
 
     def total_cost(self):
-        """Calculate total cost across all completed sessions"""
-        total_hours = self.total_duration_seconds() / 3600
-        return round(float(self.price_per_hour) * total_hours, 2)
+        """Calculate total cost across all completed sessions using their snapshot prices"""
+        total = 0
+        for session in self.sessions.filter(end_time__isnull=False):
+            total += session.cost()
+        return round(total, 2)
 
 
 class TimerSession(models.Model):
     """A single session of a timer (start to stop)"""
-    timer = models.ForeignKey(Timer, on_delete=models.CASCADE, related_name='sessions')
+    project_timer = models.ForeignKey(ProjectTimer, on_delete=models.CASCADE, related_name='sessions')
     start_time = models.DateTimeField(default=timezone.now)
     end_time = models.DateTimeField(null=True, blank=True)
+    price_per_hour = models.DecimalField(max_digits=10, decimal_places=2)  # Snapshot of price at session start
     note = models.TextField(blank=True, default='')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions_created')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -122,7 +160,7 @@ class TimerSession(models.Model):
         ordering = ['-start_time']
 
     def __str__(self):
-        return f"{self.timer.task_name} - {self.start_time}"
+        return f"{self.project_timer.timer.task_name} - {self.start_time}"
 
     def duration_seconds(self):
         """Calculate duration in seconds"""
@@ -131,20 +169,45 @@ class TimerSession(models.Model):
         return (timezone.now() - self.start_time).total_seconds()
 
     def cost(self):
-        """Calculate cost for this session"""
+        """Calculate cost for this session using the snapshot price"""
         if self.end_time:
             hours = self.duration_seconds() / 3600
-            return round(float(self.timer.price_per_hour) * hours, 2)
+            return round(float(self.price_per_hour) * hours, 2)
         return 0
 
     def clean(self):
-        """Validate that only one session per timer can be active"""
+        """Validate that only one session per project_timer can be active"""
         if not self.end_time:
             active_sessions = TimerSession.objects.filter(
-                timer=self.timer,
+                project_timer=self.project_timer,
                 end_time__isnull=True
             )
             if self.pk:
                 active_sessions = active_sessions.exclude(pk=self.pk)
             if active_sessions.exists():
                 raise ValidationError("This timer already has an active session")
+
+
+# Helper functions for workspace management
+def get_workspace_owner(user):
+    """Get the workspace owner for a user (could be the user themselves or their owner)"""
+    # Check if user is a team member
+    team_membership = TeamMember.objects.filter(member=user).first()
+    if team_membership:
+        return team_membership.owner
+    # User is their own owner
+    return user
+
+
+def is_workspace_owner(user):
+    """Check if user is a workspace owner (not a team member)"""
+    return not TeamMember.objects.filter(member=user).exists()
+
+
+def get_workspace_users(user):
+    """Get all users in the workspace (owner + team members)"""
+    owner = get_workspace_owner(user)
+    # Get all team members
+    team_members = TeamMember.objects.filter(owner=owner).values_list('member', flat=True)
+    # Return owner + all team members
+    return User.objects.filter(models.Q(pk=owner.pk) | models.Q(pk__in=team_members))

@@ -1,0 +1,448 @@
+{% extends "timer_app/base.html" %}
+{% load timer_filters %}
+
+{% block title %}Admin Panel - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <span>Admin Panel</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .admin-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .admin-title h1 {
+        margin: 0;
+    }
+    
+    .timer-table {
+        width: 100%;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .timer-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .timer-table thead {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .timer-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .timer-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .timer-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .timer-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .timer-name {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .timer-price {
+        font-weight: 600;
+        color: #27ae60;
+        font-size: 1.1rem;
+    }
+    
+    .timer-stats {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    
+    .timer-actions {
+        display: inline-flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-icon {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.875rem;
+        white-space: nowrap;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+
+<div class="admin-header">
+    <div class="admin-title">
+        <h1>Admin Panel</h1>
+    </div>
+    <a href="{% url 'timer_create' %}" class="btn btn-success">+ Create New Timer</a>
+</div>
+
+{% if not is_owner %}
+<div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+    <p style="margin: 0; color: #856404;">
+        <strong>🔒 Access Restricted</strong><br>
+        This page is only accessible to workspace owners. You are a team member in <strong>{{ workspace_owner.username }}'s</strong> workspace.
+    </p>
+</div>
+{% endif %}
+
+<!-- Owner Account Management -->
+{% if is_owner %}
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3>Your Account</h3>
+    </div>
+    
+    <div style="padding: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="font-weight: 600; color: #666; font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Username:</label>
+                <div style="font-size: 1.1rem; color: #2c3e50;">{{ user.username }}</div>
+            </div>
+            <div>
+                <label style="font-weight: 600; color: #666; font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Email:</label>
+                <div style="font-size: 1.1rem; color: #2c3e50;">{{ user.email|default:"No email set" }}</div>
+            </div>
+        </div>
+        <a href="{% url 'edit_own_account' %}" class="btn btn-secondary">Edit Account</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h3>Timer Management</h3>
+    </div>
+    
+    <p style="padding: 0 1.5rem; color: #666; margin-bottom: 1.5rem;">
+        Manage your global timer templates. Changes to prices will only affect new sessions - existing sessions keep their original rates.
+    </p>
+    
+    {% if timer_stats %}
+    <div class="timer-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timer Name</th>
+                    <th>Price/Hour</th>
+                    <th>Usage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in timer_stats %}
+                <tr>
+                    <td>
+                        <div class="timer-name">{{ stat.timer.task_name }}</div>
+                    </td>
+                    <td>
+                        <div class="timer-price">{{ stat.timer.price_per_hour|format_currency }}/hr</div>
+                    </td>
+                    <td>
+                        <div class="timer-stats">
+                            {{ stat.project_count }} project{{ stat.project_count|pluralize }}<br>
+                            {{ stat.session_count }} session{{ stat.session_count|pluralize }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="timer-actions">
+                            <a href="{% url 'timer_edit_global' stat.timer.pk %}" class="btn btn-secondary btn-icon">
+                                Edit
+                            </a>
+                            <a href="{% url 'timer_delete_global' stat.timer.pk %}" class="btn btn-danger btn-icon">
+                                Delete
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">⏲️</div>
+        <h3>No timers yet</h3>
+        <p>Create your first timer template to get started.</p>
+        <a href="{% url 'timer_create' %}" class="btn btn-success" style="margin-top: 1rem;">+ Create Timer</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Team Management (Owner Only) -->
+{% if is_owner %}
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3>Team Management</h3>
+    </div>
+    
+    <p style="padding: 0 1.5rem; color: #666; margin-bottom: 1.5rem;">
+        Create new team member accounts. They will have access to all your customers, projects, and timers, but cannot access the admin panel or delete data.
+    </p>
+    
+    <!-- Create Team Member Form -->
+    <div style="padding: 0 1.5rem; margin-bottom: 1.5rem;">
+        <form method="post" action="{% url 'team_add_member' %}" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: flex-end;">
+            {% csrf_token %}
+            <div class="form-group" style="margin: 0;">
+                <label for="username" class="form-label">Username:</label>
+                <input type="text" name="username" id="username" class="form-input" placeholder="username" required>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label for="password" class="form-label">Password:</label>
+                <input type="password" name="password" id="password" class="form-input" placeholder="password" required>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label for="email" class="form-label">Email (optional):</label>
+                <input type="email" name="email" id="email" class="form-input" placeholder="email@example.com">
+            </div>
+            <button type="submit" class="btn btn-success" style="white-space: nowrap;">+ Create User</button>
+        </form>
+    </div>
+    
+    {% if team_members %}
+    <div class="timer-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tm in team_members %}
+                <tr>
+                    <td>
+                        <div class="timer-name">{{ tm.user.username }}</div>
+                    </td>
+                    <td>
+                        <div class="timer-stats">{{ tm.user.email|default:"No email" }}</div>
+                    </td>
+                    <td>
+                        <div class="timer-stats">{{ tm.membership.created_at|date:"M d, Y" }}</div>
+                    </td>
+                    <td>
+                        <div class="timer-actions">
+                            <a href="{% url 'edit_team_member' tm.membership.pk %}" class="btn btn-secondary btn-icon">
+                                Edit
+                            </a>
+                            <a href="{% url 'team_remove_member' tm.membership.pk %}" class="btn btn-danger btn-icon">
+                                Remove
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">👥</div>
+        <h3>No team members yet</h3>
+        <p>Create user accounts for your team members so they can access your workspace.</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Customer Management -->
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3>Customer Management</h3>
+    </div>
+    
+    <p style="padding: 0 1.5rem; color: #666; margin-bottom: 1.5rem;">
+        Manage all your customers. <strong>Warning:</strong> Deleting a customer will permanently remove all their projects and associated data.
+    </p>
+    
+    {% if customer_stats %}
+    <div class="timer-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Projects</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in customer_stats %}
+                <tr>
+                    <td>
+                        <div class="timer-name">{{ stat.customer.name }}</div>
+                    </td>
+                    <td>
+                        <div class="timer-stats">
+                            {{ stat.project_count }} project{{ stat.project_count|pluralize }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="timer-actions">
+                            <a href="{% url 'customer_detail' stat.customer.pk %}" class="btn btn-secondary btn-icon">
+                                View
+                            </a>
+                            <a href="{% url 'customer_edit' stat.customer.pk %}" class="btn btn-secondary btn-icon">
+                                Edit
+                            </a>
+                            {% if is_owner %}
+                            <a href="{% url 'customer_delete' stat.customer.pk %}" class="btn btn-danger btn-icon">
+                                Delete
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">👥</div>
+        <h3>No customers yet</h3>
+        <p>Add your first customer to get started.</p>
+        <a href="{% url 'customer_add' %}" class="btn btn-success" style="margin-top: 1rem;">+ Add Customer</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Project Management -->
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3>Project Management</h3>
+    </div>
+    
+    <p style="padding: 0 1.5rem; color: #666; margin-bottom: 1.5rem;">
+        Manage all your projects. <strong>Warning:</strong> Deleting a project will permanently remove all associated timers and session data.
+    </p>
+    
+    {% if project_stats %}
+    <div class="timer-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Project Name</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Usage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in project_stats %}
+                <tr>
+                    <td>
+                        <div class="timer-name">{{ stat.project.name }}</div>
+                    </td>
+                    <td>
+                        <a href="{% url 'customer_detail' stat.project.customer.pk %}" style="color: #666;">
+                            {{ stat.project.customer.name }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ stat.project.status }}">
+                            {{ stat.project.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="timer-stats">
+                            {{ stat.timer_count }} timer{{ stat.timer_count|pluralize }}<br>
+                            {{ stat.session_count }} session{{ stat.session_count|pluralize }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="timer-actions">
+                            <a href="{% url 'project_detail' stat.project.pk %}" class="btn btn-secondary btn-icon">
+                                View
+                            </a>
+                            <a href="{% url 'project_edit' stat.project.pk %}" class="btn btn-secondary btn-icon">
+                                Edit
+                            </a>
+                            {% if is_owner %}
+                            <a href="{% url 'project_delete' stat.project.pk %}" class="btn btn-danger btn-icon">
+                                Delete
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <h3>No projects yet</h3>
+        <p>Add customers first, then create projects for them.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3>About Admin Panel</h3>
+    </div>
+    <div style="padding: 1.5rem; color: #666;">
+        <h4 style="margin-top: 0;">What you can manage here:</h4>
+        <ul style="line-height: 1.8;">
+            <li><strong>Team Members</strong> - Create user accounts for your team. They can work with your data but cannot access admin.</li>
+            <li><strong>Timers</strong> - Create timer templates with hourly rates. Price changes won't affect past sessions.</li>
+            <li><strong>Customers</strong> - Delete customers (also removes all their projects and data).</li>
+            <li><strong>Projects</strong> - Delete projects (also removes all associated timers and sessions).</li>
+        </ul>
+        
+        <h4 style="margin-top: 1.5rem;">Workspace Owner vs Team Members:</h4>
+        <ul style="line-height: 1.8;">
+            <li><strong>👑 You (Owner)</strong> - Full control: create, edit, delete everything + manage team members.</li>
+            <li><strong>👥 Team Members</strong> - Can create and edit data, start/stop timers, but cannot delete or access admin.</li>
+            <li>💡 All users in your workspace share the same customers, projects, and timers.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+

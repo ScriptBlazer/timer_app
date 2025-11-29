@@ -8,9 +8,9 @@
     <span>›</span>
     <a href="{% url 'customer_list' %}">Customers</a>
     <span>›</span>
-    <a href="{% url 'customer_detail' session.timer.project.customer.pk %}">{{ session.timer.project.customer.name }}</a>
+    <a href="{% url 'customer_detail' session.project_timer.project.customer.pk %}">{{ session.project_timer.project.customer.name }}</a>
     <span>›</span>
-    <a href="{% url 'project_detail' session.timer.project.pk %}">{{ session.timer.project.name }}</a>
+    <a href="{% url 'project_detail' session.project_timer.project.pk %}">{{ session.project_timer.project.name }}</a>
     <span>›</span>
     <span>Edit Session</span>
 </div>
@@ -21,9 +21,9 @@
     <div class="card-header">Edit Session Time</div>
     
     <p style="margin-bottom: 1.5rem; color: #666;">
-        <strong>Timer:</strong> {{ session.timer.task_name }}<br>
-        <strong>Customer:</strong> {{ session.timer.project.customer.name }}<br>
-        <strong>Project:</strong> {{ session.timer.project.name }}
+        <strong>Timer:</strong> {{ session.project_timer.timer.task_name }}<br>
+        <strong>Customer:</strong> {{ session.project_timer.project.customer.name }}<br>
+        <strong>Project:</strong> {{ session.project_timer.project.name }}
     </p>
     
     <form method="post">
@@ -69,7 +69,7 @@
 
         <div class="actions">
             <button type="submit" class="btn">Save Changes</button>
-            <a href="{% url 'project_detail' session.timer.project.pk %}" class="btn btn-secondary">Cancel</a>
+            <a href="{% url 'project_detail' session.project_timer.project.pk %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>

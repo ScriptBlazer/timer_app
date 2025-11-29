@@ -21,7 +21,7 @@
     {% for session in active_sessions %}
     <div class="timer-card">
         <div class="timer-card-header">
-            <h3 class="timer-task-name">{{ session.timer.task_name }}</h3>
+            <h3 class="timer-task-name">{{ session.project_timer.timer.task_name }}</h3>
             <span class="timer-status status-running">RUNNING</span>
         </div>
         
@@ -30,22 +30,22 @@
                 <div class="timer-info-item">
                     <span class="timer-label">Customer:</span>
                     <span class="timer-value">
-                        <a href="{% url 'customer_detail' session.timer.project.customer.pk %}">
-                            {{ session.timer.project.customer.name }}
+                        <a href="{% url 'customer_detail' session.project_timer.project.customer.pk %}">
+                            {{ session.project_timer.project.customer.name }}
                         </a>
                     </span>
                 </div>
                 <div class="timer-info-item">
                     <span class="timer-label">Project:</span>
                     <span class="timer-value">
-                        <a href="{% url 'project_detail' session.timer.project.pk %}">
-                            {{ session.timer.project.name }}
+                        <a href="{% url 'project_detail' session.project_timer.project.pk %}">
+                            {{ session.project_timer.project.name }}
                         </a>
                     </span>
                 </div>
                 <div class="timer-info-item">
                     <span class="timer-label">Rate:</span>
-                    <span class="timer-value">{{ session.timer.price_per_hour|format_currency }}/hr</span>
+                    <span class="timer-value">{{ session.price_per_hour|format_currency }}/hr</span>
                 </div>
                 <div class="timer-info-item">
                     <span class="timer-label">Started:</span>
@@ -55,17 +55,17 @@
             
             <div class="timer-current-session">
                 <span class="timer-label">Current Duration:</span>
-                <span class="live-timer" data-timer-id="{{ session.timer.pk }}" data-start-time="{{ session.start_time.isoformat }}">
+                <span class="live-timer" data-timer-id="{{ session.project_timer.pk }}" data-start-time="{{ session.start_time.isoformat }}">
                     00:00:00
                 </span>
             </div>
             
             <div class="timer-actions">
-                <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ session.timer.pk }}">
+                <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ session.project_timer.pk }}">
                     <span>⏸</span> Stop Timer
                 </button>
                 <div class="timer-footer-actions">
-                    <a href="{% url 'project_detail' session.timer.project.pk %}" class="btn-link">Go to Project →</a>
+                    <a href="{% url 'project_detail' session.project_timer.project.pk %}" class="btn-link">Go to Project →</a>
                 </div>
             </div>
         </div>
@@ -121,7 +121,7 @@
         button.addEventListener('click', function() {
             const timerId = this.dataset.timerId;
             
-            fetch(`/timers/${timerId}/stop/`, {
+            fetch(`/project-timers/${timerId}/stop/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrftoken,

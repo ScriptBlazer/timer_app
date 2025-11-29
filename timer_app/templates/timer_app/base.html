@@ -141,6 +141,24 @@
             font-weight: 600;
         }
 
+        .sidebar-admin {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background: #6c757d;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-admin:hover {
+            background: #5a6268;
+        }
+
         .sidebar-logout {
             display: block;
             width: 100%;
@@ -202,9 +220,13 @@
         }
 
         .message {
-            padding: 1rem;
+            padding: 1rem 3rem 1rem 1rem;
             margin-bottom: 0.5rem;
             border-radius: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .message.success {
@@ -223,6 +245,25 @@
             background-color: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
+        }
+
+        .message-close {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .message-close:hover {
+            opacity: 1;
         }
 
         .btn {
@@ -645,6 +686,8 @@
             display: flex;
             gap: 1.5rem;
             margin-bottom: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .session-detail {
@@ -652,10 +695,22 @@
             color: #666;
         }
 
+        .session-creator-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
         .session-stats {
             display: flex;
             gap: 1rem;
             margin: 0.75rem 0;
+            align-items: flex-start;
         }
 
         .session-duration {
@@ -667,12 +722,26 @@
             font-family: 'Courier New', monospace;
         }
 
+        .session-cost-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
         .session-cost {
             background: #fff3e0;
             color: #f57c00;
             padding: 0.35rem 0.75rem;
             border-radius: 4px;
             font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .session-rate-recorded {
+            font-size: 0.7rem;
+            color: #999;
+            font-style: italic;
+            white-space: nowrap;
         }
 
         .session-note-container {
@@ -817,25 +886,29 @@
             <a href="{% url 'home' %}" class="brand-name">Timer Tracker</a>
         </div>
         
-        <nav class="sidebar-nav">
-            <a href="{% url 'customer_list' %}" class="sidebar-link">
-                <span class="sidebar-link-icon">👥</span>
-                <span>Customers</span>
-            </a>
-            <a href="{% url 'project_list' %}" class="sidebar-link">
-                <span class="sidebar-link-icon">📁</span>
-                <span>Projects</span>
-            </a>
-            <a href="{% url 'running_timers' %}" class="sidebar-link">
-                <span class="sidebar-link-icon">⏱️</span>
-                <span>Running Timers</span>
-            </a>
-        </nav>
+            <nav class="sidebar-nav">
+                <a href="{% url 'customer_list' %}" class="sidebar-link">
+                    <span class="sidebar-link-icon">👥</span>
+                    <span>Customers</span>
+                </a>
+                <a href="{% url 'project_list' %}" class="sidebar-link">
+                    <span class="sidebar-link-icon">📁</span>
+                    <span>Projects</span>
+                </a>
+                <a href="{% url 'running_timers' %}" class="sidebar-link">
+                    <span class="sidebar-link-icon">▶️</span>
+                    <span>Running Timers</span>
+                </a>
+            </nav>
         
         <div class="sidebar-footer">
             <div class="sidebar-user">
                 <div class="user-name">{{ user.username }}</div>
             </div>
+            {% load timer_tags %}
+            {% if user|is_workspace_owner %}
+            <a href="{% url 'admin_panel' %}" class="sidebar-admin">Admin</a>
+            {% endif %}
             <a href="{% url 'logout' %}" class="sidebar-logout">Logout</a>
         </div>
     </aside>
@@ -845,13 +918,16 @@
         {% block breadcrumb %}{% endblock %}
         
         <div class="container">
-            {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li class="message {{ message.tags }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="message {{ message.tags }}">
+                {{ message }}
+                <button class="message-close" onclick="this.parentElement.remove()">×</button>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
 
             {% block content %}{% endblock %}
         </div>
@@ -875,6 +951,24 @@
             return cookieValue;
         }
         const csrftoken = getCookie('csrftoken');
+
+        // Auto-hide messages after 4 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(message => {
+                // Add fade out animation after 4 seconds
+                setTimeout(() => {
+                    message.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    message.style.opacity = '0';
+                    message.style.transform = 'translateY(-10px)';
+                    
+                    // Remove from DOM after animation completes
+                    setTimeout(() => {
+                        message.remove();
+                    }, 500);
+                }, 4000);
+            });
+        });
     </script>
 
     {% block extra_js %}{% endblock %}

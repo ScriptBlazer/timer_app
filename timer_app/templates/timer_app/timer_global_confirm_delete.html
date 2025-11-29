@@ -1,0 +1,37 @@
+{% extends "timer_app/base.html" %}
+
+{% block title %}Delete Timer - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'admin_panel' %}">Admin Panel</a>
+    <span>›</span>
+    <span>Delete Timer</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">Confirm Deletion</div>
+    
+    <p>Are you sure you want to delete the timer <strong>{{ timer.task_name }}</strong>?</p>
+    
+    {% if timer.project_timers.count > 0 %}
+    <div class="alert alert-warning">
+        <strong>Warning:</strong> This timer is currently assigned to {{ timer.project_timers.count }} project{{ timer.project_timers.count|pluralize }}. 
+        All associated sessions and data will be permanently deleted.
+    </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{% url 'admin_panel' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
