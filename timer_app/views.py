@@ -9,7 +9,8 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 import json
 
-from .models import Customer, Project, Timer, ProjectTimer, TimerSession, TeamMember, get_workspace_owner, is_workspace_owner, get_workspace_users
+from .models import Customer, Project, Timer, ProjectTimer, TimerSession, TeamMember, PendingRegistration, get_workspace_owner, is_workspace_owner, get_workspace_users
+from .telegram_utils import send_telegram_approval_request, send_telegram_notification
 from .forms import RegisterForm, CustomerForm, ProjectForm, TimerForm, SessionNoteForm, SessionEditForm
 
 
@@ -41,17 +42,54 @@ def home(request):
 
 
 def register_view(request):
-    """User registration"""
+    """User registration - requires admin approval via Telegram"""
     if request.user.is_authenticated:
         return redirect('customer_list')
     
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Registration successful!')
-            return redirect('customer_list')
+            # Don't create user yet - create pending registration
+            username = form.cleaned_data['username']
+            email = form.cleaned_data.get('email', '')
+            password = form.cleaned_data['password1']
+            
+            # Check if username already exists as a user
+            if User.objects.filter(username=username).exists():
+                messages.error(request, 'A user with this username already exists.')
+                return render(request, 'timer_app/register.html', {'form': form})
+            
+            # Check if already pending
+            pending = PendingRegistration.objects.filter(username=username).first()
+            if pending:
+                messages.error(request, f'A registration for "{username}" is already pending approval.')
+                return render(request, 'timer_app/register.html', {
+                    'form': form,
+                    'pending_registration': pending
+                })
+            
+            # Create pending registration with hashed password
+            from django.contrib.auth.hashers import make_password
+            pending = PendingRegistration.objects.create(
+                username=username,
+                email=email,
+                password_hash=make_password(password)
+            )
+            
+            # Send Telegram notification
+            success, error_msg = send_telegram_approval_request(pending, request)
+            if not success and error_msg:
+                print(f"Warning: {error_msg}")
+            
+            # Show success message
+            return render(request, 'timer_app/registration_pending.html', {
+                'username': username
+            })
+        else:
+            # Form validation failed - show errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = RegisterForm()
     
@@ -63,6 +101,123 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('login')
+
+
+def approve_registration(request, token):
+    """Approve a pending registration"""
+    pending = get_object_or_404(PendingRegistration, approval_token=token)
+    
+    # Create the user
+    user = User.objects.create(
+        username=pending.username,
+        email=pending.email,
+        password=pending.password_hash  # Already hashed
+    )
+    
+    # Send confirmation
+    send_telegram_notification(
+        f"✅ Registration approved!\n\n"
+        f"Username: {user.username}\n"
+        f"Email: {user.email}\n\n"
+        f"User can now log in."
+    )
+    
+    # Delete pending registration
+    pending.delete()
+    
+    return render(request, 'timer_app/registration_approved.html', {
+        'username': user.username
+    })
+
+
+def deny_registration(request, token):
+    """Deny a pending registration"""
+    pending = get_object_or_404(PendingRegistration, approval_token=token)
+    
+    username = pending.username
+    email = pending.email
+    
+    # Send notification
+    send_telegram_notification(
+        f"❌ Registration denied\n\n"
+        f"Username: {username}\n"
+        f"Email: {email}"
+    )
+    
+    # Delete pending registration
+    pending.delete()
+    
+    return render(request, 'timer_app/registration_denied.html', {
+        'username': username
+    })
+
+
+def resend_approval_notification(request, token):
+    """Resend Telegram approval notification for a pending registration"""
+    pending = get_object_or_404(PendingRegistration, approval_token=token)
+    
+    # Resend Telegram notification
+    success, error_msg = send_telegram_approval_request(pending, request)
+    
+    # Check if this is coming from admin panel (user is authenticated) or registration page
+    if request.user.is_authenticated:
+        # Coming from admin panel
+        if success:
+            messages.success(request, f'Approval notification for "{pending.username}" has been resent to Telegram!')
+        else:
+            # Show specific error message
+            error_display = error_msg if error_msg else 'Failed to send Telegram notification. Please check the server logs.'
+            messages.error(request, error_display)
+        return redirect('admin_panel')
+    else:
+        # Coming from registration page
+        if success:
+            return render(request, 'timer_app/register.html', {
+                'form': RegisterForm(),
+                'notification_resent': True,
+                'pending_username': pending.username
+            })
+        else:
+            # Show specific error message
+            error_display = error_msg if error_msg else 'Failed to send Telegram notification. Please try again later.'
+            messages.error(request, error_display)
+            return render(request, 'timer_app/register.html', {
+                'form': RegisterForm(),
+                'pending_registration': pending,
+                'telegram_error': True
+            })
+
+
+def test_telegram(request):
+    """Test endpoint to verify Telegram connection"""
+    from django.contrib.auth.decorators import login_required
+    from .telegram_utils import send_telegram_notification
+    import os
+    from dotenv import load_dotenv
+    
+    if not request.user.is_authenticated or not is_workspace_owner(request.user):
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+    
+    load_dotenv()
+    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    chat_id = os.getenv('TELEGRAM_ADMIN_CHAT_ID')
+    
+    info = {
+        'bot_token_exists': bool(bot_token),
+        'bot_token_preview': bot_token[:10] + '...' if bot_token else None,
+        'chat_id': chat_id,
+        'chat_id_exists': bool(chat_id),
+    }
+    
+    if request.method == 'POST':
+        # Try sending a test message
+        test_message = "🧪 Test message from Timer App!\n\nIf you received this, Telegram is working correctly! ✅"
+        success = send_telegram_notification(test_message)
+        info['test_sent'] = True
+        info['test_success'] = success
+    
+    from django.http import JsonResponse
+    return JsonResponse(info)
 
 
 # Customer Views
@@ -493,6 +648,7 @@ def admin_panel(request):
     
     # Team member stats (only for owner)
     team_members = []
+    pending_registrations = []
     if is_owner:
         team_memberships = TeamMember.objects.filter(owner=request.user).select_related('member')
         for tm in team_memberships:
@@ -500,12 +656,16 @@ def admin_panel(request):
                 'membership': tm,
                 'user': tm.member
             })
+        
+        # Get pending registrations (show to all owners, not workspace-specific)
+        pending_registrations = PendingRegistration.objects.all()
     
     return render(request, 'timer_app/admin_panel.html', {
         'timer_stats': timer_stats,
         'customer_stats': customer_stats,
         'project_stats': project_stats,
         'team_members': team_members,
+        'pending_registrations': pending_registrations,
         'is_owner': is_owner,
         'workspace_owner': workspace_owner
     })

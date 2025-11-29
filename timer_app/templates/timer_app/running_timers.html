@@ -62,7 +62,7 @@
             
             <div class="timer-actions">
                 <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ session.project_timer.pk }}">
-                    <span>⏸</span> Stop Timer
+                    <i class="far fa-pause-circle"></i> Stop Timer
                 </button>
                 <div class="timer-footer-actions">
                     <a href="{% url 'project_detail' session.project_timer.project.pk %}" class="btn-link">Go to Project →</a>

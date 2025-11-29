@@ -20,12 +20,63 @@
         .text-center { text-align: center; margin-top: 1rem; }
         .text-center a { color: #3498db; text-decoration: none; }
         .text-center a:hover { text-decoration: underline; }
+        .messages { margin-bottom: 1rem; }
+        .alert { padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; }
+        .alert-error { background: #fee; border: 1px solid #e74c3c; color: #c0392b; }
+        .alert-success { background: #efe; border: 1px solid #27ae60; color: #229954; }
+        .resend-link { display: block; margin-top: 1rem; padding: 0.75rem; background: #f39c12; color: white; text-align: center; text-decoration: none; border-radius: 4px; font-weight: 600; }
+        .resend-link:hover { background: #e67e22; }
+        .pending-info { background: #fff3cd; border-left: 4px solid #f39c12; padding: 1rem; margin: 1rem 0; color: #856404; }
+        .alert-warning { background: #fff3cd; border: 1px solid #f39c12; color: #856404; }
+        .telegram-help { background: #e7f3ff; border-left: 4px solid #3498db; padding: 1rem; margin: 1rem 0; color: #2c3e50; }
+        .telegram-help ol { margin: 0.5rem 0 0 1.5rem; padding-left: 0.5rem; }
+        .telegram-help li { margin: 0.25rem 0; }
     </style>
 </head>
 <body>
 <div class="register-container">
 <div class="card">
     <div class="card-header">Register</div>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {% if message.tags == 'error' and 'Bot conversation not started' in message|stringformat:"s" %}
+                <strong><i class="far fa-exclamation-triangle"></i> Telegram Bot Setup Required</strong>
+                <div class="telegram-help">
+                    {{ message|linebreaks }}
+                    <p style="margin-top: 0.75rem;"><strong>Quick Fix:</strong></p>
+                    <ol>
+                        <li>Open Telegram (phone or desktop)</li>
+                        <li>Search for: <strong>@berko_timer_app_bot</strong></li>
+                        <li>Click <strong>"Start"</strong> or type <code>/start</code></li>
+                        <li>Come back and click "Resend Approval Notification" again</li>
+                    </ol>
+                </div>
+            {% else %}
+                {{ message }}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if pending_registration %}
+    <div class="pending-info">
+        <strong>Registration Already Pending</strong><br>
+        A registration for this username is already waiting for approval. You can resend the approval notification to the administrator.
+        <a href="{% url 'resend_approval_notification' pending_registration.approval_token %}" class="resend-link" style="margin-top: 0.75rem;">
+            <i class="far fa-paper-plane"></i> Resend Approval Notification
+        </a>
+    </div>
+    {% endif %}
+    
+    {% if notification_resent %}
+    <div class="alert alert-success">
+        <i class="far fa-check-circle"></i> Approval notification has been resent to Telegram for "{{ pending_username }}". Check your Telegram messages!
+    </div>
+    {% endif %}
     
     <form method="post">
         {% csrf_token %}

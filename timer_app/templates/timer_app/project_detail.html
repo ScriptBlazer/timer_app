@@ -88,11 +88,11 @@
                 {% if project.status == 'active' %}
                     {% if project_timer.is_running %}
                     <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ project_timer.pk }}">
-                        <span>⏸</span> Stop Timer
+                        <i class="far fa-pause-circle"></i> Stop Timer
                     </button>
                     {% else %}
                     <button class="btn btn-success btn-timer-action start-timer" data-timer-id="{{ project_timer.pk }}">
-                        <span>▶</span> Start Timer
+                        <i class="far fa-play-circle"></i> Start Timer
                     </button>
                     {% endif %}
                 {% endif %}
