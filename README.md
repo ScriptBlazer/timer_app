@@ -32,27 +32,37 @@ Then open your browser to: **http://127.0.0.1:8000/**
 
 1. **Install Python** (3.8 or higher recommended)
 
-2. **Install dependencies**:
+2. **Set up environment variables**:
+   ```bash
+   # Copy the example file
+   cp .env.example .env
+   
+   # Edit .env and set your SECRET_KEY
+   # Generate a new secret key with:
+   python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+   ```
+
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run database migrations**:
+4. **Run database migrations**:
    ```bash
    python manage.py migrate
    ```
 
-4. **Create a superuser** (optional, for admin access):
+5. **Create a superuser** (optional, for admin access):
    ```bash
    python manage.py createsuperuser
    ```
 
-5. **Run the development server**:
+6. **Run the development server**:
    ```bash
    python manage.py runserver
    ```
 
-6. **Access the application**:
+7. **Access the application**:
    - Open your browser and go to: http://127.0.0.1:8000/
    - Register a new account or login
 
@@ -122,13 +132,23 @@ This is an MVP (Minimum Viable Product) focused on core functionality. The desig
 - The app uses Django's built-in authentication system
 - AJAX is used for timer start/stop operations for a smooth user experience
 
+## Environment Variables
+
+The application uses a `.env` file for configuration. Key variables:
+
+- `SECRET_KEY` - Django secret key (generate a new one for production!)
+- `DEBUG` - Set to `True` for development, `False` for production
+- `ALLOWED_HOSTS` - Comma-separated list of allowed hosts
+- `DATABASE_NAME` - SQLite database filename
+
 ## Security Note
 
 For production use, you should:
-1. Change the SECRET_KEY in settings.py
-2. Set DEBUG = False
-3. Configure ALLOWED_HOSTS
+1. Generate a new SECRET_KEY and add it to .env
+2. Set DEBUG=False in .env
+3. Configure ALLOWED_HOSTS properly in .env
 4. Use a production-grade database (PostgreSQL, MySQL)
 5. Set up proper static file serving
 6. Use HTTPS
+7. Never commit your .env file to git!
 
