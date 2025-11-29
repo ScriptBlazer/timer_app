@@ -20,11 +20,10 @@
     <h1 class="page-title">{{ project.name }}</h1>
     <div class="actions">
         {% if project.status == 'active' %}
-        <a href="{% url 'timer_add' %}?project={{ project.pk }}" class="btn btn-success">Add Timer</a>
+        <a href="{% url 'timer_assign_to_project' %}?project={{ project.pk }}" class="btn btn-success">Assign Timer</a>
         <a href="{% url 'project_complete' project.pk %}" class="btn">Mark Complete</a>
         {% endif %}
         <a href="{% url 'project_edit' project.pk %}" class="btn btn-secondary">Edit</a>
-        <a href="{% url 'project_delete' project.pk %}" class="btn btn-danger">Delete</a>
     </div>
 </div>
 
@@ -38,7 +37,7 @@
     </p>
     <p><strong>Total Time:</strong> {{ project.total_duration_seconds|format_duration }}</p>
     <p><strong>Total Cost:</strong> {{ project.total_cost|format_currency }}</p>
-    <p><strong>Timers:</strong> {{ timers.count }}</p>
+    <p><strong>Timers:</strong> {{ project_timers.count }}</p>
 </div>
 
 {% if project.status == 'completed' %}
@@ -49,14 +48,14 @@
 
 <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Timers</h2>
 
-{% if timers %}
+{% if project_timers %}
 <div class="timer-grid">
-    {% for timer in timers %}
-    <div class="timer-card" data-timer-id="{{ timer.pk }}">
+    {% for project_timer in project_timers %}
+    <div class="timer-card" data-timer-id="{{ project_timer.pk }}">
         <div class="timer-card-header">
-            <h3 class="timer-task-name">{{ timer.task_name }}</h3>
-            <span class="timer-status {% if timer.is_running %}status-running{% else %}status-stopped{% endif %}">
-                {% if timer.is_running %}RUNNING{% else %}STOPPED{% endif %}
+            <h3 class="timer-task-name">{{ project_timer.timer.task_name }}</h3>
+            <span class="timer-status {% if project_timer.is_running %}status-running{% else %}status-stopped{% endif %}">
+                {% if project_timer.is_running %}RUNNING{% else %}STOPPED{% endif %}
             </span>
         </div>
         
@@ -64,22 +63,22 @@
             <div class="timer-info">
                 <div class="timer-info-item">
                     <span class="timer-label">Rate:</span>
-                    <span class="timer-value">{{ timer.price_per_hour|format_currency }}/hr</span>
+                    <span class="timer-value">{{ project_timer.timer.price_per_hour|format_currency }}/hr</span>
                 </div>
                 <div class="timer-info-item">
                     <span class="timer-label">Total Time:</span>
-                    <span class="timer-value timer-total">{{ timer.total_duration_seconds|format_duration }}</span>
+                    <span class="timer-value timer-total">{{ project_timer.total_duration_seconds|format_duration }}</span>
                 </div>
                 <div class="timer-info-item">
                     <span class="timer-label">Total Cost:</span>
-                    <span class="timer-value">{{ timer.total_cost|format_currency }}</span>
+                    <span class="timer-value">{{ project_timer.total_cost|format_currency }}</span>
                 </div>
             </div>
             
-            {% if timer.is_running %}
+            {% if project_timer.is_running %}
             <div class="timer-current-session">
                 <span class="timer-label">Current Session:</span>
-                <span class="live-timer" data-timer-id="{{ timer.pk }}" data-start-time="{{ timer.active_session.start_time.isoformat }}">
+                <span class="live-timer" data-timer-id="{{ project_timer.pk }}" data-start-time="{{ project_timer.active_session.start_time.isoformat }}">
                     00:00:00
                 </span>
             </div>
@@ -87,36 +86,37 @@
             
             <div class="timer-actions">
                 {% if project.status == 'active' %}
-                    {% if timer.is_running %}
-                    <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ timer.pk }}">
+                    {% if project_timer.is_running %}
+                    <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ project_timer.pk }}">
                         <span>⏸</span> Stop Timer
                     </button>
                     {% else %}
-                    <button class="btn btn-success btn-timer-action start-timer" data-timer-id="{{ timer.pk }}">
+                    <button class="btn btn-success btn-timer-action start-timer" data-timer-id="{{ project_timer.pk }}">
                         <span>▶</span> Start Timer
                     </button>
                     {% endif %}
                 {% endif %}
                 
                 <div class="timer-footer-actions">
-                    <button class="btn-link toggle-sessions" data-timer-id="{{ timer.pk }}">
-                        <span class="toggle-icon">▼</span> View Sessions ({{ timer.sessions.count }})
+                    <button class="btn-link toggle-sessions" data-timer-id="{{ project_timer.pk }}">
+                        <span class="toggle-icon">▼</span> View Sessions ({{ project_timer.sessions.count }})
                     </button>
+                    {% if is_owner %}
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <a href="{% url 'timer_edit' timer.pk %}" class="btn-edit-timer" title="Edit timer">✏️</a>
-                        <a href="{% url 'timer_delete' timer.pk %}" class="btn-delete-timer" title="Delete timer">🗑️</a>
+                        <a href="{% url 'project_timer_remove' project_timer.pk %}" class="btn btn-small btn-danger">Remove</a>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
         
-        <div class="timer-sessions-container" id="sessions-{{ timer.pk }}" style="display: none;">
+        <div class="timer-sessions-container" id="sessions-{{ project_timer.pk }}" style="display: none;">
             <div class="sessions-header">
                 <h4>Sessions</h4>
             </div>
-            {% if timer.sessions.all %}
+            {% if project_timer.sessions.all %}
             <div class="sessions-list">
-                {% for session in timer.sessions.all %}
+                {% for session in project_timer.sessions.all %}
                 <div class="session-item">
                     <div class="session-time">
                         <div class="session-detail">
@@ -130,10 +130,18 @@
                                 <span class="timer-running">ACTIVE</span>
                             {% endif %}
                         </div>
+                        {% if has_team_members and session.created_by %}
+                        <div class="session-creator-tag">
+                            👤 {{ session.created_by.username }}
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="session-stats">
                         <span class="session-duration">{{ session.duration_seconds|format_duration }}</span>
-                        <span class="session-cost">{{ session.cost|format_currency }}</span>
+                        <div class="session-cost-container">
+                            <span class="session-cost">{{ session.cost|format_currency }}</span>
+                            <span class="session-rate-recorded">Recorded at {{ session.price_per_hour|format_currency }}/hr</span>
+                        </div>
                     </div>
                     <div class="session-note-container">
                         <label style="font-weight: 600; color: #666; font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Note:</label>
@@ -146,7 +154,9 @@
                     </div>
                     <div class="session-actions">
                         <a href="{% url 'session_edit' session.pk %}" class="btn btn-small btn-secondary">Edit Time</a>
+                        {% if is_owner %}
                         <button class="btn btn-small btn-danger delete-session" data-session-id="{{ session.pk }}">Delete Session</button>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -162,7 +172,7 @@
 <div class="card">
     <p>No timers yet. 
         {% if project.status == 'active' %}
-        <a href="{% url 'timer_add' %}?project={{ project.pk }}">Add your first timer</a>
+        <a href="{% url 'timer_assign_to_project' %}?project={{ project.pk }}">Assign your first timer</a>
         {% endif %}
     </p>
 </div>
@@ -243,7 +253,7 @@
         button.addEventListener('click', function() {
             const timerId = this.dataset.timerId;
             
-            fetch(`/timers/${timerId}/start/`, {
+            fetch(`/project-timers/${timerId}/start/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrftoken,
@@ -270,7 +280,7 @@
         button.addEventListener('click', function() {
             const timerId = this.dataset.timerId;
             
-            fetch(`/timers/${timerId}/stop/`, {
+            fetch(`/project-timers/${timerId}/stop/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrftoken,

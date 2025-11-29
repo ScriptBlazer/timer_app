@@ -6,21 +6,9 @@
 <div class="breadcrumb">
     <a href="{% url 'home' %}">Home</a>
     <span>›</span>
-    <a href="{% url 'customer_list' %}">Customers</a>
+    <a href="{% url 'admin_panel' %}">Admin Panel</a>
     <span>›</span>
-    {% if timer %}
-    <a href="{% url 'customer_detail' timer.project.customer.pk %}">{{ timer.project.customer.name }}</a>
-    <span>›</span>
-    <a href="{% url 'project_detail' timer.project.pk %}">{{ timer.project.name }}</a>
-    <span>›</span>
-    <span>Edit Timer</span>
-    {% else %}
-    <a href="{% url 'customer_detail' project.customer.pk %}">{{ project.customer.name }}</a>
-    <span>›</span>
-    <a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a>
-    <span>›</span>
-    <span>Add Timer</span>
-    {% endif %}
+    <span>{{ title }}</span>
 </div>
 {% endblock %}
 
@@ -57,11 +45,7 @@
 
         <div class="actions">
             <button type="submit" class="btn">Save</button>
-            {% if timer %}
-            <a href="{% url 'project_detail' timer.project.pk %}" class="btn btn-secondary">Cancel</a>
-            {% else %}
-            <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary">Cancel</a>
-            {% endif %}
+            <a href="{% url 'admin_panel' %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>

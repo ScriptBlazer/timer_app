@@ -1,0 +1,41 @@
+{% extends "timer_app/base.html" %}
+
+{% block title %}Remove Timer - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' project_timer.project.customer.pk %}">{{ project_timer.project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' project_timer.project.pk %}">{{ project_timer.project.name }}</a>
+    <span>›</span>
+    <span>Remove Timer</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">Confirm Removal</div>
+    
+    <p>Are you sure you want to remove the timer <strong>{{ project_timer.timer.task_name }}</strong> from project <strong>{{ project_timer.project.name }}</strong>?</p>
+    
+    {% if project_timer.sessions.count > 0 %}
+    <div class="alert alert-warning">
+        <strong>Warning:</strong> This timer has {{ project_timer.sessions.count }} session{{ project_timer.sessions.count|pluralize }}. 
+        All session data will be permanently deleted.
+    </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn btn-danger">Yes, Remove</button>
+            <a href="{% url 'project_detail' project_timer.project.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
