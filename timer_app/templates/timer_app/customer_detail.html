@@ -50,7 +50,7 @@
             <th>Name</th>
             <th class="hide-mobile">Status</th>
             <th class="hide-mobile">Timers</th>
-            <th>Total Time</th>
+            <th class="hide-mobile">Total Time</th>
             <th>Total Cost</th>
             <th>Actions</th>
         </tr>
@@ -65,7 +65,7 @@
                     </span>
                 </td>
                 <td class="hide-mobile">{{ project.timers.count }}</td>
-                <td>{{ project.total_duration_seconds|format_duration }}</td>
+                <td class="hide-mobile">{{ project.total_duration_seconds|format_duration }}</td>
                 <td>{{ project.total_cost|format_currency }}</td>
                 <td class="actions">
                     <a href="{% url 'project_detail' project.pk %}" class="btn btn-small">View</a>
