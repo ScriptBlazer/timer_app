@@ -38,6 +38,8 @@ jobs:
         echo "DEBUG=True" >> $GITHUB_ENV
         echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
         echo "DJANGO_SETTINGS_MODULE=config.settings" >> $GITHUB_ENV
+        echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> $GITHUB_ENV
+        echo "TELEGRAM_ADMIN_CHAT_ID=${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}" >> $GITHUB_ENV
 
     - name: Run migrations
       run: |
