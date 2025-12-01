@@ -1,4 +1,4 @@
-:80 {
+timer.samberko.co.uk {
     encode gzip
 
     handle_path /static/* {

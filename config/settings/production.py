@@ -23,6 +23,8 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
+# CSRF trusted origins for production (from environment, comma-separated)
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost").split(",")
 # HTTPS Settings (uncomment when SSL is configured)
 # SECURE_SSL_REDIRECT = True
 # SESSION_COOKIE_SECURE = True
@@ -97,13 +99,7 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'django_logs.log' / 'django.log',
-            'maxBytes': 1024 * 1024 * 15,  # 15MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-        },
+        # removed 'file' handler
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler',
@@ -111,22 +107,22 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],   # removed 'file'
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],   # removed 'file'
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['mail_admins', 'file'],
+            'handlers': ['mail_admins', 'console'],   # removed 'file'
             'level': 'ERROR',
             'propagate': False,
         },
         'django.security': {
-            'handlers': ['mail_admins', 'file'],
+            'handlers': ['mail_admins', 'console'],   # removed 'file'
             'level': 'ERROR',
             'propagate': False,
         },
@@ -146,4 +142,3 @@ LOGGING = {
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-

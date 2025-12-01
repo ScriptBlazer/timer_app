@@ -1,6 +1,7 @@
 services:
 
   web:
+    user: "0:0"
     build:
       context: .
     image: scriptblazer/timer-app:${DOCKER_TAG:-latest}
@@ -10,11 +11,12 @@ services:
       - static-data:/app/staticfiles
       - ./media:/app/media
       - ./django_logs.log:/app/django_logs.log
-      - ./db.sqlite3:/app/db.sqlite3
     env_file:
       - .env
+    depends_on:
+      - db
     ports:
-      - "8000:8000"     
+      - "8000:8000"
     healthcheck:
       test: "curl --fail -s http://127.0.0.1:8000/ || exit 1"
       interval: 10s
@@ -27,6 +29,17 @@ services:
         max-size: "100m"
         max-file: "7"
 
+  db:
+    image: postgres:16
+    container_name: timer-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
   caddy:
     image: caddy:latest
     container_name: timer-caddy
@@ -37,7 +50,7 @@ services:
       - ./media:/app/media:ro
       - ./Caddyfile:/etc/caddy/Caddyfile
     ports:
-      - "80:80"           
+      - "80:80"
       - "443:443"
     depends_on:
       - web
@@ -51,3 +64,4 @@ services:
 volumes:
   static-data:
   caddy-data:
+  postgres-data:
