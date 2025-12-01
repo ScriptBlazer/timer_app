@@ -34,8 +34,8 @@
             <tr>
                 <th>Name</th>
                 <th>Projects</th>
-                <th>Total Time</th>
-                <th>Total Cost</th>
+                <th class="hide-mobile">Total Time</th>
+                <th class="hide-mobile">Total Cost</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -44,8 +44,8 @@
             <tr data-original-index="{{ forloop.counter }}">
                 <td><a href="{% url 'customer_detail' customer.pk %}">{{ customer.name }}</a></td>
                 <td>{{ customer.projects.count }}</td>
-                <td>{{ customer.total_duration_seconds|format_duration }}</td>
-                <td>{{ customer.total_cost|format_currency }}</td>
+                <td class="hide-mobile">{{ customer.total_duration_seconds|format_duration }}</td>
+                <td class="hide-mobile">{{ customer.total_cost|format_currency }}</td>
                 <td class="actions">
                     <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-small">View</a>
                     <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-small btn-secondary">Edit</a>

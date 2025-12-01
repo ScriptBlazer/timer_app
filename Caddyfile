@@ -1,15 +1,22 @@
-timer.samberko.co.uk {
+:80 {
     encode gzip
 
-    handle_path /static/* {
+    # Serve STATIC files
+    @static path /static/*
+    handle @static {
         root * /app/staticfiles
         file_server
     }
 
-    handle_path /media/* {
-        root * /app/media
+    # Serve MEDIA files
+    @media path /media/*
+    handle @media {
+        root * /app
         file_server
     }
 
-    reverse_proxy web:8000
+    # Everything else goes to Django
+    handle {
+        reverse_proxy web:8000
+    }
 }

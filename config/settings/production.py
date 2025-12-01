@@ -7,9 +7,8 @@ from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-# Ensure SECRET_KEY is set in production
-if SECRET_KEY == 'django-insecure-fallback-key-change-this':
-    raise ValueError("SECRET_KEY must be set in production environment!")
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-change-this')
 
 # Parse ALLOWED_HOSTS from environment variable
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
@@ -55,6 +54,9 @@ if not DATABASES['default']['NAME'] or not DATABASES['default']['USER']:
 # Static files configuration for production
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',   
+]
 
 # Use WhiteNoise for static files serving (if installed)
 # Add 'whitenoise.middleware.WhiteNoiseMiddleware' to MIDDLEWARE if using WhiteNoise
