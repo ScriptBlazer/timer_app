@@ -209,6 +209,7 @@ a:hover {
     border-radius: 8px;
     font-weight: 600;
     transition: background 0.2s;
+    margin-bottom: 6%;
 }
 
 .sidebar-logout:hover {
