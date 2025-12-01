@@ -46,25 +46,25 @@
 <div class="card">
     <table class="table">
         <thead>
-            <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Timers</th>
-                <th>Total Time</th>
-                <th>Total Cost</th>
-                <th>Actions</th>
-            </tr>
+        <tr>
+            <th>Name</th>
+            <th class="hide-mobile">Status</th>
+            <th class="hide-mobile">Timers</th>
+            <th>Total Time</th>
+            <th>Total Cost</th>
+            <th>Actions</th>
+        </tr>
         </thead>
         <tbody>
             {% for project in projects %}
             <tr class="project-row" data-status="{{ project.status }}" data-name="{{ project.name|lower }}">
                 <td><a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a></td>
-                <td>
+                <td class="hide-mobile">
                     <span class="status-badge status-{{ project.status }}">
                         {{ project.get_status_display }}
                     </span>
                 </td>
-                <td>{{ project.timers.count }}</td>
+                <td class="hide-mobile">{{ project.timers.count }}</td>
                 <td>{{ project.total_duration_seconds|format_duration }}</td>
                 <td>{{ project.total_cost|format_currency }}</td>
                 <td class="actions">

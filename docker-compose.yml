@@ -10,7 +10,6 @@ services:
     volumes:
       - static-data:/app/staticfiles
       - ./media:/app/media
-      - ./django_logs.log:/app/django_logs.log
     env_file:
       - .env
     depends_on:

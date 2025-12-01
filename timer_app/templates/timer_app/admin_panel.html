@@ -1,5 +1,9 @@
 {% extends "timer_app/base.html" %}
-{% load timer_filters %}
+{% load static timer_filters %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
 
 {% block title %}Admin Panel - Timer Tracker{% endblock %}
 
@@ -12,109 +16,6 @@
 {% endblock %}
 
 {% block content %}
-<style>
-    .admin-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-    
-    .admin-title {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    
-    .admin-title h1 {
-        margin: 0;
-    }
-    
-    .timer-table {
-        width: 100%;
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .timer-table table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .timer-table thead {
-        background: #f8f9fa;
-        border-bottom: 2px solid #dee2e6;
-    }
-    
-    .timer-table th {
-        padding: 1rem;
-        text-align: left;
-        font-weight: 600;
-        color: #495057;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .timer-table td {
-        padding: 1rem;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .timer-table tbody tr:hover {
-        background: #f8f9fa;
-    }
-    
-    .timer-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-    
-    .timer-name {
-        font-weight: 600;
-        color: #2c3e50;
-    }
-    
-    .timer-price {
-        font-weight: 600;
-        color: #27ae60;
-        font-size: 1.1rem;
-    }
-    
-    .timer-stats {
-        color: #6c757d;
-        font-size: 0.875rem;
-    }
-    
-    .timer-actions {
-        display: flex;
-        flex-direction: row;
-        gap: 0.5rem;
-        align-items: center;
-        flex-wrap: nowrap;
-    }
-    
-    .btn-icon {
-        padding: 0.4rem 0.75rem;
-        font-size: 0.875rem;
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: #6c757d;
-    }
-    
-    .empty-state-icon {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-</style>
-
 <div class="admin-header">
     <div class="admin-title">
         <h1>Admin Panel</h1>
