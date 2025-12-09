@@ -43,11 +43,283 @@
             {% endif %}
         </div>
 
+        <div class="form-group">
+            <label for="{{ form.header_color.id_for_label }}" class="form-label">Header Color:</label>
+            <div class="color-picker-container">
+                <div class="color-presets">
+                    <div class="color-preset" data-color="#3498db" style="background-color: #3498db;" title="Blue"></div>
+                    <div class="color-preset" data-color="#27ae60" style="background-color: #27ae60;" title="Green"></div>
+                    <div class="color-preset" data-color="#e74c3c" style="background-color: #e74c3c;" title="Red"></div>
+                    <div class="color-preset" data-color="#f39c12" style="background-color: #f39c12;" title="Orange"></div>
+                    <div class="color-preset" data-color="#9b59b6" style="background-color: #9b59b6;" title="Purple"></div>
+                    <div class="color-preset" data-color="#1abc9c" style="background-color: #1abc9c;" title="Teal"></div>
+                    <div class="color-preset" data-color="#34495e" style="background-color: #34495e;" title="Dark Blue"></div>
+                    <div class="color-preset" data-color="#e67e22" style="background-color: #e67e22;" title="Dark Orange"></div>
+                </div>
+                <div class="color-input-wrapper">
+                    {{ form.header_color }}
+                    <input type="text" id="color-hex-input" class="form-input" placeholder="#3498db" maxlength="7">
+                    <button type="button" id="add-custom-color-btn" class="btn btn-secondary" style="white-space: nowrap;">Add Custom Colour</button>
+                </div>
+                <div class="custom-colors-section">
+                    <label class="custom-colors-label">Custom Colors:</label>
+                    <div class="custom-colors" id="custom-colors-container">
+                        {% for color in custom_colors %}
+                        <div class="color-preset custom-color" data-color="{{ color|upper }}" style="background-color: {{ color|upper }};" title="{{ color|upper }}"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% if form.header_color.errors %}
+                <ul class="errorlist">
+                    {% for error in form.header_color.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
         <div class="actions">
             <button type="submit" class="btn">Save</button>
             <a href="{% url 'admin_panel' %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.color-picker-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.color-presets {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.color-preset {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid #ddd;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.color-preset:hover {
+    transform: scale(1.1);
+    border-color: #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.color-preset.active {
+    border-color: #333;
+    border-width: 3px;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+.color-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.color-input-wrapper input[type="color"] {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0;
+    cursor: pointer;
+    width: 60px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+#color-hex-input {
+    font-family: monospace;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 120px;
+}
+
+#add-custom-color-btn {
+    flex-shrink: 0;
+}
+
+.custom-colors-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.custom-colors-label {
+    display: block;
+    font-weight: 600;
+    color: #666;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.custom-colors {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const colorInput = document.getElementById('{{ form.header_color.id_for_label }}');
+        const hexInput = document.getElementById('color-hex-input');
+        
+        // Initialize hex input with current color value
+        if (colorInput.value) {
+            hexInput.value = colorInput.value.toUpperCase();
+        } else {
+            colorInput.value = '#3498db';
+            hexInput.value = '#3498db';
+        }
+        
+        // Get all color presets including custom colors (will be updated when custom colors are added)
+        let allPresets = document.querySelectorAll('.color-preset');
+        
+        // Update active preset based on current color
+        function updateActivePreset() {
+            const currentColor = colorInput.value.toUpperCase();
+            allPresets.forEach(preset => {
+                if (preset.dataset.color.toUpperCase() === currentColor) {
+                    preset.classList.add('active');
+                } else {
+                    preset.classList.remove('active');
+                }
+            });
+        }
+        updateActivePreset();
+        
+        // Preset click handler (for all presets including custom)
+        function attachColorClickHandler(element) {
+            element.addEventListener('click', function() {
+                const color = this.dataset.color;
+                colorInput.value = color;
+                hexInput.value = color.toUpperCase();
+                updateActivePreset();
+            });
+        }
+        
+        // Attach handlers to all existing presets
+        allPresets.forEach(preset => {
+            attachColorClickHandler(preset);
+        });
+        
+        // Color picker change handler
+        colorInput.addEventListener('input', function() {
+            hexInput.value = this.value.toUpperCase();
+            updateActivePreset();
+        });
+        
+        // Hex input change handler
+        hexInput.addEventListener('input', function() {
+            let value = this.value;
+            // Add # if missing
+            if (value && !value.startsWith('#')) {
+                value = '#' + value;
+            }
+            // Validate hex color
+            if (/^#[0-9A-F]{6}$/i.test(value)) {
+                colorInput.value = value.toUpperCase();
+                updateActivePreset();
+            }
+        });
+        
+        // Format hex input on blur
+        hexInput.addEventListener('blur', function() {
+            let value = this.value.trim();
+            if (value && !value.startsWith('#')) {
+                value = '#' + value;
+            }
+            if (/^#[0-9A-F]{6}$/i.test(value)) {
+                this.value = value.toUpperCase();
+            } else {
+                // Reset to current color if invalid
+                this.value = colorInput.value.toUpperCase();
+            }
+        });
+        
+        // Add custom color button handler
+        const addCustomColorBtn = document.getElementById('add-custom-color-btn');
+        const customColorsContainer = document.getElementById('custom-colors-container');
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        addCustomColorBtn.addEventListener('click', function() {
+            const currentColor = colorInput.value.toUpperCase();
+            
+            // Validate color
+            if (!/^#[0-9A-F]{6}$/i.test(currentColor)) {
+                alert('Please select a valid color first');
+                return;
+            }
+            
+            // Check if color already exists in custom colors
+            const existingCustomColors = Array.from(customColorsContainer.querySelectorAll('.custom-color')).map(el => el.dataset.color.toUpperCase());
+            if (existingCustomColors.includes(currentColor)) {
+                alert('This color is already in your custom colors');
+                return;
+            }
+            
+            // Send AJAX request to save custom color
+            fetch('{% url "add_custom_color" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ color: currentColor })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add the color to the custom colors container
+                    const colorBox = document.createElement('div');
+                    colorBox.className = 'color-preset custom-color';
+                    colorBox.dataset.color = data.color;
+                    colorBox.style.backgroundColor = data.color;
+                    colorBox.title = data.color;
+                    
+                    // Add click handler
+                    attachColorClickHandler(colorBox);
+                    
+                    // Update allPresets to include the new color
+                    allPresets = document.querySelectorAll('.color-preset');
+                    
+                    // Insert at the beginning
+                    customColorsContainer.insertBefore(colorBox, customColorsContainer.firstChild);
+                    
+                    // Show success message
+                    const originalText = addCustomColorBtn.textContent;
+                    addCustomColorBtn.textContent = 'Added!';
+                    addCustomColorBtn.style.background = '#27ae60';
+                    setTimeout(() => {
+                        addCustomColorBtn.textContent = originalText;
+                        addCustomColorBtn.style.background = '';
+                    }, 2000);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to add custom color'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding the custom color');
+            });
+        });
+    })();
+</script>
 {% endblock %}
 

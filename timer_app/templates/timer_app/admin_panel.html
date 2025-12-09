@@ -39,7 +39,7 @@
     </div>
     
     <div style="padding: 1.5rem;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div class="account-info-grid">
             <div>
                 <label style="font-weight: 600; color: #666; font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Username:</label>
                 <div style="font-size: 1.1rem; color: #2c3e50;">{{ user.username }}</div>
@@ -70,6 +70,7 @@
             <thead>
                 <tr>
                     <th>Timer Name</th>
+                    <th>Color</th>
                     <th>Price/Hour</th>
                     <th>Usage</th>
                     <th>Actions</th>
@@ -80,6 +81,9 @@
                 <tr>
                     <td>
                         <div class="timer-name">{{ stat.timer.task_name }}</div>
+                    </td>
+                    <td data-label="Color">
+                        <div class="timer-color-display" style="background-color: {{ stat.timer.header_color|default:'#3498db' }};" title="{{ stat.timer.header_color|default:'#3498db' }}"></div>
                     </td>
                     <td>
                         <div class="timer-price">{{ stat.timer.price_per_hour|format_currency }}/hr</div>
@@ -162,7 +166,7 @@
     
     <!-- Create Team Member Form -->
     <div style="padding: 0 1.5rem; margin-bottom: 1.5rem;">
-        <form method="post" action="{% url 'team_add_member' %}" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: flex-end;">
+        <form method="post" action="{% url 'team_add_member' %}" class="team-member-form">
             {% csrf_token %}
             <div class="form-group" style="margin: 0;">
                 <label for="username" class="form-label">Username:</label>
@@ -176,7 +180,7 @@
                 <label for="email" class="form-label">Email (optional):</label>
                 <input type="email" name="email" id="email" class="form-input" placeholder="email@example.com">
             </div>
-            <button type="submit" class="btn btn-success" style="white-space: nowrap;">+ Create User</button>
+            <button type="submit" class="btn btn-success team-form-submit">+ Create User</button>
         </form>
     </div>
     

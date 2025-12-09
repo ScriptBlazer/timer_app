@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 import json
 
-from .models import Customer, Project, Timer, ProjectTimer, TimerSession, TeamMember, PendingRegistration, get_workspace_owner, is_workspace_owner, get_workspace_users
+from .models import Customer, Project, Timer, ProjectTimer, TimerSession, TeamMember, PendingRegistration, CustomColor, get_workspace_owner, is_workspace_owner, get_workspace_users
 from .telegram_utils import send_telegram_approval_request, send_telegram_notification
 from .forms import RegisterForm, CustomerForm, ProjectForm, TimerForm, SessionNoteForm, SessionEditForm
 
@@ -693,9 +693,15 @@ def timer_create(request):
     else:
         form = TimerForm()
     
+    # Get custom colors saved by workspace owner
+    workspace_owner = get_workspace_owner(request.user)
+    custom_colors = CustomColor.objects.filter(owner=workspace_owner).order_by('-created_at')
+    custom_colors_list = [cc.color.upper() for cc in custom_colors]
+    
     return render(request, 'timer_app/timer_create.html', {
         'form': form,
-        'title': 'Create Timer'
+        'title': 'Create Timer',
+        'custom_colors': custom_colors_list
     })
 
 
@@ -713,11 +719,51 @@ def timer_edit_global(request, pk):
     else:
         form = TimerForm(instance=timer)
     
+    # Get custom colors saved by workspace owner
+    workspace_owner = get_workspace_owner(request.user)
+    custom_colors = CustomColor.objects.filter(owner=workspace_owner).order_by('-created_at')
+    custom_colors_list = [cc.color.upper() for cc in custom_colors]
+    
     return render(request, 'timer_app/timer_create.html', {
         'form': form,
         'title': 'Edit Timer',
-        'timer': timer
+        'timer': timer,
+        'custom_colors': custom_colors_list
     })
+
+
+@login_required
+@require_POST
+def add_custom_color(request):
+    """Add a custom color to the workspace"""
+    try:
+        data = json.loads(request.body)
+        color = data.get('color', '').strip().upper()
+        
+        # Validate hex color
+        if not color or not color.startswith('#') or len(color) != 7:
+            return JsonResponse({'success': False, 'error': 'Invalid color format'})
+        
+        # Validate hex characters
+        if not all(c in '0123456789ABCDEF' for c in color[1:]):
+            return JsonResponse({'success': False, 'error': 'Invalid hex color'})
+        
+        workspace_owner = get_workspace_owner(request.user)
+        
+        # Check if color already exists
+        if CustomColor.objects.filter(owner=workspace_owner, color=color).exists():
+            return JsonResponse({'success': False, 'error': 'Color already exists'})
+        
+        # Create custom color
+        custom_color = CustomColor.objects.create(owner=workspace_owner, color=color)
+        
+        return JsonResponse({
+            'success': True,
+            'color': custom_color.color,
+            'message': 'Custom color added successfully'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 @login_required
