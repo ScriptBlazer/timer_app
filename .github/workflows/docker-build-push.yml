@@ -60,3 +60,4 @@ jobs:
           echo "  - ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${VERSION}"
           echo "  - ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
 
+
