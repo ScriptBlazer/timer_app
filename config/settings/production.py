@@ -139,7 +139,11 @@ LOGGING = {
 #     }
 # }
 
-# Session Configuration
-SESSION_COOKIE_AGE = 86400  # 24 hours
-SESSION_SAVE_EVERY_REQUEST = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# Session Configuration - Keep users logged in
+# Sessions persist for 30 days (2592000 seconds)
+SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Keep logged in after browser closes
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on each request to keep it alive
+SESSION_COOKIE_HTTPONLY = True  # Security: prevent JavaScript access to session cookie
+SESSION_COOKIE_SAMESITE = 'Lax'  # Security: prevent CSRF attacks
+# Note: SESSION_COOKIE_SECURE should be True when using HTTPS (uncomment line 29)

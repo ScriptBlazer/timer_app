@@ -20,7 +20,7 @@
 <div class="timer-grid">
     {% for session in active_sessions %}
     <div class="timer-card">
-        <div class="timer-card-header">
+        <div class="timer-card-header" style="background-color: {{ session.project_timer.timer.header_color|default:'#3498db' }};">
             <h3 class="timer-task-name">{{ session.project_timer.timer.task_name }}</h3>
             <span class="timer-status status-running">RUNNING</span>
         </div>

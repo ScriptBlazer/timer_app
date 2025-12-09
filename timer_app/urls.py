@@ -67,6 +67,7 @@ urlpatterns = [
     path('timers/create/', views.timer_create, name='timer_create'),
     path('timers/<int:pk>/edit-global/', views.timer_edit_global, name='timer_edit_global'),
     path('timers/<int:pk>/delete-global/', views.timer_delete_global, name='timer_delete_global'),
+    path('timers/add-custom-color/', views.add_custom_color, name='add_custom_color'),
     
     # Project Timers
     path('timers/running/', views.running_timers, name='running_timers'),

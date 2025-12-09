@@ -133,4 +133,13 @@ LOGIN_REDIRECT_URL = '/customers/'
 LOGIN_URL = '/login/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+# Session settings - Keep users logged in
+# Sessions persist for 30 days (2592000 seconds)
+SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Keep logged in after browser closes
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on each request to keep it alive
+SESSION_COOKIE_HTTPONLY = True  # Security: prevent JavaScript access to session cookie
+SESSION_COOKIE_SAMESITE = 'Lax'  # Security: prevent CSRF attacks
+
+
 

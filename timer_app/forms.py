@@ -33,10 +33,11 @@ class ProjectForm(forms.ModelForm):
 class TimerForm(forms.ModelForm):
     class Meta:
         model = Timer
-        fields = ['task_name', 'price_per_hour']
+        fields = ['task_name', 'price_per_hour', 'header_color']
         widgets = {
             'task_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Task name'}),
             'price_per_hour': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': 'Price per hour', 'step': '0.01'}),
+            'header_color': forms.TextInput(attrs={'class': 'form-input color-input', 'type': 'color'}),
         }
 
 

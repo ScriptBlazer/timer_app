@@ -72,6 +72,24 @@
     font-size: 0.875rem;
 }
 
+.timer-color-display {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    display: inline-block !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    min-width: 30px;
+    min-height: 30px;
+    background-color: #3498db; /* fallback */
+}
+
+.timer-table td .timer-color-display {
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
 .timer-actions {
     display: flex;
     flex-direction: row;
@@ -97,6 +115,32 @@
     font-size: 4rem;
     margin-bottom: 1rem;
     opacity: 0.5;
+}
+
+/* Team Member Form - Responsive Flexbox */
+.team-member-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.team-member-form .form-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.team-form-submit {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Account Info Grid - Responsive */
+.account-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 @media (max-width: 768px) {
@@ -135,16 +179,55 @@
         border-bottom: 1px solid #eee;
         padding: 0.75rem 1rem;
     }
+    
+    .timer-table td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #495057;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 
     .timer-table td:last-child {
         border-bottom: none;
+    }
+    
+    .timer-color-display {
+        display: inline-block !important;
+        width: 30px !important;
+        height: 30px !important;
     }
 
     .timer-actions {
         justify-content: flex-start;
         flex-wrap: wrap;
     }
+
+    /* Team Member Form - Stack on mobile */
+    .team-member-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .team-member-form .form-group {
+        min-width: 100%;
+        width: 100%;
+    }
+
+    .team-form-submit {
+        width: 100%;
+    }
+
+    /* Account Info Grid - Stack on mobile */
+    .account-info-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
+
 
 
 

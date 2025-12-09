@@ -52,7 +52,7 @@
 <div class="timer-grid">
     {% for project_timer in project_timers %}
     <div class="timer-card" data-timer-id="{{ project_timer.pk }}">
-        <div class="timer-card-header">
+        <div class="timer-card-header" style="background-color: {{ project_timer.timer.header_color|default:'#3498db' }};">
             <h3 class="timer-task-name">{{ project_timer.timer.task_name }}</h3>
             <span class="timer-status {% if project_timer.is_running %}status-running{% else %}status-stopped{% endif %}">
                 {% if project_timer.is_running %}RUNNING{% else %}STOPPED{% endif %}
