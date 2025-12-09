@@ -58,10 +58,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',   
 ]
 
-# Use WhiteNoise for static files serving (if installed)
-# Add 'whitenoise.middleware.WhiteNoiseMiddleware' to MIDDLEWARE if using WhiteNoise
-# MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Use WhiteNoise for static files serving
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
 MEDIA_URL = '/media/'
