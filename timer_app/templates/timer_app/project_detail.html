@@ -17,7 +17,9 @@
 
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">{{ project.name }}</h1>
+    <h1 class="page-title">
+        <span class="customer-name-mobile-hide">{{ project.customer.name }} &nbsp;|&nbsp; </span>{{ project.name }}
+    </h1>
     <div class="actions">
         {% if project.status == 'active' %}
         <a href="{% url 'timer_assign_to_project' %}?project={{ project.pk }}" class="btn btn-success">Assign Timer</a>

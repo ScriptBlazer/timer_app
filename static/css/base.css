@@ -158,7 +158,7 @@ a:hover {
 
 .sidebar-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.5rem 1.5rem 4rem 1.5rem;
+    padding: 1.5rem;
 }
 
 .sidebar-user {
@@ -993,6 +993,10 @@ body.sidebar-open .sidebar-toggle-bar::after {
         height: 100vh;
     }
 
+    .sidebar-footer {
+        padding: 1.5rem 1.5rem 4rem 1.5rem;
+    }
+
     body.sidebar-open .sidebar {
         transform: translateX(0);
     }
@@ -1027,6 +1031,10 @@ body.sidebar-open .sidebar-toggle-bar::after {
     .page-title {
         font-size: 1.5rem;
         margin: 0;
+    }
+
+    .customer-name-mobile-hide {
+        display: none;
     }
 
     /* Single button in page-header */
