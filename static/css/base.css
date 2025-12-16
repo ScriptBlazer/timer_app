@@ -72,6 +72,16 @@ a:hover {
     }
 }
 
+.hide-mobile-link {
+    display: none;
+}
+
+@media (min-width: 769px) {
+    .hide-mobile-link {
+        display: flex;
+    }
+}
+
 /* Sidebar Navigation */
 .sidebar {
     width: 280px;

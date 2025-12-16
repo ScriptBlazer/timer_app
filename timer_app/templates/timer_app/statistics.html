@@ -1,0 +1,679 @@
+{% extends "timer_app/base.html" %}
+{% load timer_filters %}
+
+{% block title %}Statistics - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <span>Statistics</span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card-value {
+        font-size: 2rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0.5rem 0;
+    }
+
+    .stat-card-label {
+        color: #8e8e93;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 500;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .chart-container {
+        background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .chart-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1d1d1f;
+        margin-bottom: 1rem;
+        letter-spacing: -0.2px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 220px;
+        margin-top: 0.5rem;
+    }
+
+    .chart-wrapper.compact {
+        height: 180px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #8e8e93;
+    }
+
+    .empty-state-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.4;
+    }
+
+    @media (max-width: 768px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-wrapper {
+            height: 250px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title" style="font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px; color: #1d1d1f;">Statistics</h1>
+</div>
+
+<!-- Summary Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-label">Total Time Tracked</div>
+        <div class="stat-card-value">{{ total_time_seconds|format_duration }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Total Sessions</div>
+        <div class="stat-card-value">{{ total_sessions }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Total Cost</div>
+        <div class="stat-card-value">{{ total_cost|format_currency }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Active Projects</div>
+        <div class="stat-card-value">{{ active_projects }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Completed Projects</div>
+        <div class="stat-card-value">{{ completed_projects }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Total Timers</div>
+        <div class="stat-card-value">{{ total_timers }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Total Customers</div>
+        <div class="stat-card-value">{{ total_customers }}</div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="charts-grid">
+    <!-- Time Tracking Over Time -->
+    {% if daily_labels %}
+    <div class="chart-container">
+        <h2 class="chart-title">Daily Activity (30 Days)</h2>
+        <div class="chart-wrapper">
+            <canvas id="dailyChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Weekly Time Tracking -->
+    {% if weekly_labels %}
+    <div class="chart-container">
+        <h2 class="chart-title">Weekly Overview (12 Weeks)</h2>
+        <div class="chart-wrapper">
+            <canvas id="weeklyChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Timers -->
+    {% if timer_stats %}
+    <div class="chart-container">
+        <h2 class="chart-title">Top Timers</h2>
+        <div class="chart-wrapper compact">
+            <canvas id="timerChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Project Status Distribution -->
+    {% if active_projects or completed_projects %}
+    <div class="chart-container">
+        <h2 class="chart-title">Project Status</h2>
+        <div class="chart-wrapper compact">
+            <canvas id="projectStatusChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Projects -->
+    {% if project_stats %}
+    <div class="chart-container">
+        <h2 class="chart-title">Top Projects</h2>
+        <div class="chart-wrapper">
+            <canvas id="projectChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Customers -->
+    {% if customer_stats %}
+    <div class="chart-container">
+        <h2 class="chart-title">Top Customers</h2>
+        <div class="chart-wrapper">
+            <canvas id="customerChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Team Member Statistics -->
+    {% if team_member_stats %}
+    <div class="chart-container">
+        <h2 class="chart-title">Team Activity</h2>
+        <div class="chart-wrapper">
+            <canvas id="teamChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Chart.js configuration - Apple-style
+    Chart.defaults.color = '#8e8e93';
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif';
+    Chart.defaults.font.size = 11;
+    Chart.defaults.font.weight = '500';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.padding = 15;
+    Chart.defaults.plugins.legend.labels.font.size = 11;
+    Chart.defaults.elements.point.radius = 3;
+    Chart.defaults.elements.point.hoverRadius = 5;
+    Chart.defaults.elements.line.borderWidth = 2.5;
+    Chart.defaults.elements.bar.borderRadius = 6;
+    Chart.defaults.elements.bar.borderSkipped = false;
+
+    // Daily Time Tracking Chart - Apple style gradient
+    {% if daily_labels %}
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+    const dailyGradient = dailyCtx.createLinearGradient(0, 0, 0, 220);
+    dailyGradient.addColorStop(0, 'rgba(99, 102, 241, 0.3)');
+    dailyGradient.addColorStop(1, 'rgba(99, 102, 241, 0.05)');
+    
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: {{ daily_labels|safe }},
+            datasets: [{
+                label: 'Hours',
+                data: {{ daily_hours|safe }},
+                borderColor: '#6366f1',
+                backgroundColor: dailyGradient,
+                fill: true,
+                tension: 0.5,
+                pointBackgroundColor: '#6366f1',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointHoverBackgroundColor: '#4f46e5',
+                pointHoverBorderColor: '#ffffff',
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxRotation: 0,
+                        font: { size: 10 }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.04)'
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Weekly Time Tracking Chart - Modern gradient bars
+    {% if weekly_labels %}
+    const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+    const weeklyData = {{ weekly_hours|safe }};
+    
+    new Chart(weeklyCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ weekly_labels|safe }},
+            datasets: [{
+                label: 'Hours',
+                data: weeklyData,
+                backgroundColor: (ctx) => {
+                    const gradient = weeklyCtx.createLinearGradient(0, 0, 0, 220);
+                    const hue = 160 + (ctx.dataIndex * 3);
+                    gradient.addColorStop(0, `hsl(${hue}, 65%, 55%)`);
+                    gradient.addColorStop(1, `hsl(${hue}, 65%, 40%)`);
+                    return gradient;
+                },
+                borderWidth: 0,
+                maxBarThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxRotation: 0,
+                        font: { size: 10 }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.04)'
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Top Timers Chart - Modern doughnut with gradients
+    {% if timer_stats %}
+    const timerCtx = document.getElementById('timerChart').getContext('2d');
+    const timerColors = [
+        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+        'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+        'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+        'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+        'linear-gradient(135deg, #ff8a80 0%, #ea6100 100%)'
+    ];
+    
+    // Convert gradients to solid colors for Chart.js
+    const timerSolidColors = [
+        '#667eea', '#f5576c', '#4facfe', '#43e97b', '#fa709a',
+        '#30cfd0', '#a8edea', '#ff9a9e', '#ffecd2', '#ff8a80'
+    ];
+    
+    new Chart(timerCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ timer_names|safe }},
+            datasets: [{
+                label: 'Hours',
+                data: {{ timer_hours|safe }},
+                backgroundColor: timerSolidColors,
+                borderWidth: 0,
+                cutout: '65%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 8,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { size: 10 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Project Status Chart - Elegant pie
+    {% if active_projects or completed_projects %}
+    const projectStatusCtx = document.getElementById('projectStatusChart').getContext('2d');
+    const statusGradient1 = projectStatusCtx.createLinearGradient(0, 0, 180, 180);
+    statusGradient1.addColorStop(0, '#10b981');
+    statusGradient1.addColorStop(1, '#059669');
+    
+    const statusGradient2 = projectStatusCtx.createLinearGradient(0, 0, 180, 180);
+    statusGradient2.addColorStop(0, '#3b82f6');
+    statusGradient2.addColorStop(1, '#2563eb');
+    
+    new Chart(projectStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active', 'Completed'],
+            datasets: [{
+                data: [{{ active_projects }}, {{ completed_projects }}],
+                backgroundColor: [statusGradient1, statusGradient2],
+                borderWidth: 0,
+                cutout: '65%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 8,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { size: 10 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Top Projects Chart - Horizontal bars with gradient
+    {% if project_stats %}
+    const projectCtx = document.getElementById('projectChart').getContext('2d');
+    const projectGradient = projectCtx.createLinearGradient(0, 0, 400, 0);
+    projectGradient.addColorStop(0, '#a855f7');
+    projectGradient.addColorStop(1, '#9333ea');
+    
+    new Chart(projectCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ project_names|safe }},
+            datasets: [{
+                label: 'Hours',
+                data: {{ project_hours|safe }},
+                backgroundColor: projectGradient,
+                borderWidth: 0,
+                maxBarThickness: 30
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.04)'
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: 10 }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Top Customers Chart - Horizontal bars with gradient
+    {% if customer_stats %}
+    const customerCtx = document.getElementById('customerChart').getContext('2d');
+    const customerGradient = customerCtx.createLinearGradient(0, 0, 400, 0);
+    customerGradient.addColorStop(0, '#f97316');
+    customerGradient.addColorStop(1, '#ea580c');
+    
+    new Chart(customerCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ customer_names|safe }},
+            datasets: [{
+                label: 'Hours',
+                data: {{ customer_hours|safe }},
+                backgroundColor: customerGradient,
+                borderWidth: 0,
+                maxBarThickness: 30
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.04)'
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: 10 }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Team Member Chart - Modern gradient bars
+    {% if team_member_stats %}
+    const teamCtx = document.getElementById('teamChart').getContext('2d');
+    const teamData = {{ team_hours|safe }};
+    
+    new Chart(teamCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ team_usernames|safe }},
+            datasets: [{
+                label: 'Hours',
+                data: teamData,
+                backgroundColor: (ctx) => {
+                    const gradient = teamCtx.createLinearGradient(0, 0, 0, 220);
+                    const hue = 180 + (ctx.dataIndex * 12);
+                    gradient.addColorStop(0, `hsl(${hue}, 65%, 55%)`);
+                    gradient.addColorStop(1, `hsl(${hue}, 65%, 40%)`);
+                    return gradient;
+                },
+                borderWidth: 0,
+                maxBarThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 13 },
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: 10 }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.04)'
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
+
