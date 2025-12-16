@@ -161,5 +161,5 @@ def statistics(request):
         'team_hours': json.dumps(team_hours),
     }
     
-    return render(request, 'analytics/statistics.html', context)
+    return render(request, 'analytics/analytics.html', context)
 
