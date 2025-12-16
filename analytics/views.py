@@ -6,8 +6,10 @@ import json
 from collections import defaultdict
 from datetime import timedelta
 
-from timer_app.models import (
-    Customer, Project, Timer, TimerSession,
+from customers.models import Customer
+from projects.models import Project
+from timer.models import (
+    Timer, TimerSession,
     get_workspace_users
 )
 

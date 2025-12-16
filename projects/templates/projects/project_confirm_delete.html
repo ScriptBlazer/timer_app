@@ -1,0 +1,37 @@
+{% extends "timer/base.html" %}
+
+{% block title %}Delete Project - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' project.customer.pk %}">{{ project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a>
+    <span>›</span>
+    <span>Delete</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">Delete Project</div>
+    
+    <p>Are you sure you want to delete <strong>{{ project.name }}</strong>?</p>
+    <p style="color: #e74c3c; margin-top: 1rem;">
+        <strong>Warning:</strong> This will also delete all timers and sessions associated with this project.
+    </p>
+
+    <form method="post" style="margin-top: 1.5rem;">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

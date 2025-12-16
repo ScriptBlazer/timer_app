@@ -1,0 +1,39 @@
+{% extends "timer/base.html" %}
+
+{% block title %}Delete Timer - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' timer.project.customer.pk %}">{{ timer.project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' timer.project.pk %}">{{ timer.project.name }}</a>
+    <span>›</span>
+    <a href="{% url 'timer_detail' timer.pk %}">{{ timer.task_name }}</a>
+    <span>›</span>
+    <span>Delete</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">Delete Timer</div>
+    
+    <p>Are you sure you want to delete the timer <strong>{{ timer.task_name }}</strong>?</p>
+    <p style="color: #e74c3c; margin-top: 1rem;">
+        <strong>Warning:</strong> This will also delete all sessions associated with this timer.
+    </p>
+
+    <form method="post" style="margin-top: 1.5rem;">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{% url 'timer_detail' timer.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
