@@ -1,0 +1,123 @@
+{% extends "timer/base.html" %}
+{% load timer_filters %}
+
+{% block title %}Customers - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <span>Customers</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Customers</h1>
+    <a href="{% url 'customer_add' %}" class="btn">Add Customer</a>
+</div>
+
+{% if customers %}
+<div class="filter-controls">
+    <div class="search-box">
+        <input type="text" id="customerSearch" class="form-input" placeholder="🔍 Search customers...">
+    </div>
+    <div class="sort-controls">
+        <label class="sort-label">Sort by:</label>
+        <button class="sort-btn" data-sort="name">Name</button>
+        <button class="sort-btn active" data-sort="recent">Most Recent</button>
+    </div>
+</div>
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Projects</th>
+                <th class="hide-mobile">Total Time</th>
+                <th class="hide-mobile">Total Cost</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+            <tr data-original-index="{{ forloop.counter }}">
+                <td><a href="{% url 'customer_detail' customer.pk %}">{{ customer.name }}</a></td>
+                <td>{{ customer.projects.count }}</td>
+                <td class="hide-mobile">{{ customer.total_duration_seconds|format_duration }}</td>
+                <td class="hide-mobile">{{ customer.total_cost|format_currency }}</td>
+                <td class="actions">
+                    <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-small">View</a>
+                    <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-small btn-secondary">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p>No customers yet. <a href="{% url 'customer_add' %}">Add your first customer</a></p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search customers
+    const searchInput = document.getElementById('customerSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('.table tbody tr');
+            
+            rows.forEach(row => {
+                const customerName = row.querySelector('td:first-child').textContent.toLowerCase();
+                if (customerName.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Sort customers
+    const sortButtons = document.querySelectorAll('.sort-btn');
+    const tbody = document.querySelector('.table tbody');
+    
+    if (tbody && sortButtons.length > 0) {
+        sortButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                sortButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                const sortType = this.dataset.sort;
+                
+                // Get all rows
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                // Sort based on type
+                rows.sort((a, b) => {
+                    if (sortType === 'name') {
+                        // Sort alphabetically by name
+                        const nameA = a.querySelector('td:first-child').textContent.trim().toLowerCase();
+                        const nameB = b.querySelector('td:first-child').textContent.trim().toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    } else {
+                        // Sort by original index (most recent first)
+                        const indexA = parseInt(a.dataset.originalIndex);
+                        const indexB = parseInt(b.dataset.originalIndex);
+                        return indexA - indexB;
+                    }
+                });
+                
+                // Re-append in sorted order
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    }
+</script>
+{% endblock %}
+
