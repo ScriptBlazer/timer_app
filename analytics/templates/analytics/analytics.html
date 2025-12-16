@@ -152,6 +152,19 @@
         <div class="stat-card-label">Total Customers</div>
         <div class="stat-card-value">{{ total_customers }}</div>
     </div>
+    <div class="stat-card">
+        <div class="stat-card-label">This Week's Hours</div>
+        <div class="stat-card-value">{{ this_week_hours|floatformat:1 }}h</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">This Week's Cost</div>
+        <div class="stat-card-value">{{ this_week_cost|format_currency }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Most Active Day</div>
+        <div class="stat-card-value" style="font-size: 1.5rem;">{{ most_active_day_name }}</div>
+        <div style="font-size: 0.875rem; color: #8e8e93; margin-top: 0.25rem;">{{ most_active_day_hours|floatformat:1 }}h</div>
+    </div>
 </div>
 
 <!-- Charts Grid -->
@@ -222,6 +235,76 @@
         <h2 class="chart-title">Team Activity</h2>
         <div class="chart-wrapper">
             <canvas id="teamChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cost Over Time (Daily) -->
+    {% if daily_costs %}
+    <div class="chart-container">
+        <h2 class="chart-title">Daily Cost (30 Days)</h2>
+        <div class="chart-wrapper">
+            <canvas id="dailyCostChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cost Over Time (Weekly) -->
+    {% if weekly_costs %}
+    <div class="chart-container">
+        <h2 class="chart-title">Weekly Cost (12 Weeks)</h2>
+        <div class="chart-wrapper">
+            <canvas id="weeklyCostChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Day of Week Analysis -->
+    {% if day_of_week_hours %}
+    <div class="chart-container">
+        <h2 class="chart-title">Productivity by Day</h2>
+        <div class="chart-wrapper">
+            <canvas id="dayOfWeekChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Hourly Distribution -->
+    {% if hourly_hours %}
+    <div class="chart-container">
+        <h2 class="chart-title">Activity by Hour</h2>
+        <div class="chart-wrapper">
+            <canvas id="hourlyChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Monthly Comparison -->
+    {% if monthly_labels %}
+    <div class="chart-container">
+        <h2 class="chart-title">Monthly Comparison</h2>
+        <div class="chart-wrapper">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Session Duration Trends -->
+    {% if session_duration_labels %}
+    <div class="chart-container">
+        <h2 class="chart-title">Avg Session Duration</h2>
+        <div class="chart-wrapper">
+            <canvas id="sessionDurationChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cost Breakdown by Timer -->
+    {% if cost_breakdown_datasets %}
+    <div class="chart-container">
+        <h2 class="chart-title">Cost by Timer</h2>
+        <div class="chart-wrapper">
+            <canvas id="costBreakdownChart"></canvas>
         </div>
     </div>
     {% endif %}
@@ -681,6 +764,426 @@
             }
         }
         });
+        {% endif %}
+
+        // Cost Over Time (Daily) Chart
+        {% if daily_costs %}
+        const dailyCostCtx = document.getElementById('dailyCostChart');
+        if (dailyCostCtx) {
+            const dailyCostGradient = dailyCostCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+            dailyCostGradient.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
+            dailyCostGradient.addColorStop(1, 'rgba(239, 68, 68, 0.05)');
+            
+            new Chart(dailyCostCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ daily_labels|safe }},
+                    datasets: [{
+                        label: 'Cost',
+                        data: {{ daily_costs|safe }},
+                        borderColor: '#ef4444',
+                        backgroundColor: dailyCostGradient,
+                        fill: true,
+                        tension: 0.5,
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return '£' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return '£' + value.toFixed(0); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+
+        // Cost Over Time (Weekly) Chart
+        {% if weekly_costs %}
+        const weeklyCostCtx = document.getElementById('weeklyCostChart');
+        if (weeklyCostCtx) {
+            new Chart(weeklyCostCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ weekly_labels|safe }},
+                    datasets: [{
+                        label: 'Cost',
+                        data: {{ weekly_costs|safe }},
+                        backgroundColor: (ctx) => {
+                            const gradient = weeklyCostCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                            const hue = 0 + (ctx.dataIndex * 5);
+                            gradient.addColorStop(0, `hsl(${hue}, 70%, 55%)`);
+                            gradient.addColorStop(1, `hsl(${hue}, 70%, 40%)`);
+                            return gradient;
+                        },
+                        borderWidth: 0,
+                        maxBarThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return '£' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return '£' + value.toFixed(0); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+
+        // Day of Week Analysis Chart
+        {% if day_of_week_hours %}
+        const dayOfWeekCtx = document.getElementById('dayOfWeekChart');
+        if (dayOfWeekCtx) {
+            new Chart(dayOfWeekCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ day_of_week_labels|safe }},
+                    datasets: [{
+                        label: 'Hours',
+                        data: {{ day_of_week_hours|safe }},
+                        backgroundColor: (ctx) => {
+                            const gradient = dayOfWeekCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                            const colors = ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+                            const color = colors[ctx.dataIndex % colors.length];
+                            gradient.addColorStop(0, color + 'CC');
+                            gradient.addColorStop(1, color + '66');
+                            return gradient;
+                        },
+                        borderWidth: 0,
+                        maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toFixed(1) + 'h';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return value + 'h'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+
+        // Hourly Distribution Chart
+        {% if hourly_hours %}
+        const hourlyCtx = document.getElementById('hourlyChart');
+        if (hourlyCtx) {
+            new Chart(hourlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ hourly_labels|safe }},
+                    datasets: [{
+                        label: 'Hours',
+                        data: {{ hourly_hours|safe }},
+                        backgroundColor: (ctx) => {
+                            const gradient = hourlyCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                            const hour = ctx.dataIndex;
+                            const hue = 200 + (hour * 2);
+                            gradient.addColorStop(0, `hsl(${hue}, 60%, 55%)`);
+                            gradient.addColorStop(1, `hsl(${hue}, 60%, 40%)`);
+                            return gradient;
+                        },
+                        borderWidth: 0,
+                        maxBarThickness: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toFixed(1) + 'h';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 9 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return value + 'h'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+
+        // Monthly Comparison Chart
+        {% if monthly_labels %}
+        const monthlyCtx = document.getElementById('monthlyChart');
+        if (monthlyCtx) {
+            new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ monthly_labels|safe }},
+                    datasets: [
+                        {
+                            label: 'Hours',
+                            data: {{ monthly_hours|safe }},
+                            backgroundColor: '#6366f1',
+                            borderWidth: 0,
+                            yAxisID: 'y',
+                            maxBarThickness: 40
+                        },
+                        {
+                            label: 'Cost',
+                            data: {{ monthly_costs|safe }},
+                            backgroundColor: '#ef4444',
+                            borderWidth: 0,
+                            yAxisID: 'y1',
+                            maxBarThickness: 40
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { font: { size: 10 }, padding: 10 }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return value + 'h'; }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return '£' + value.toFixed(0); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+
+        // Session Duration Trends Chart
+        {% if session_duration_labels %}
+        const sessionDurationCtx = document.getElementById('sessionDurationChart');
+        if (sessionDurationCtx) {
+            const sessionGradient = sessionDurationCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+            sessionGradient.addColorStop(0, 'rgba(139, 92, 246, 0.3)');
+            sessionGradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+            
+            new Chart(sessionDurationCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ session_duration_labels|safe }},
+                    datasets: [{
+                        label: 'Avg Duration',
+                        data: {{ session_duration_avg|safe }},
+                        borderColor: '#8b5cf6',
+                        backgroundColor: sessionGradient,
+                        fill: true,
+                        tension: 0.5,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toFixed(2) + 'h';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return value + 'h'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+
+        // Cost Breakdown by Timer (Stacked Area Chart)
+        {% if cost_breakdown_datasets %}
+        const costBreakdownCtx = document.getElementById('costBreakdownChart');
+        if (costBreakdownCtx) {
+            const costBreakdownData = {{ cost_breakdown_datasets|safe }};
+            const datasets = costBreakdownData.map((dataset, index) => {
+                const gradient = costBreakdownCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                const color = dataset.color || '#6366f1';
+                gradient.addColorStop(0, color + 'CC');
+                gradient.addColorStop(1, color + '33');
+                return {
+                    label: dataset.label,
+                    data: dataset.data,
+                    backgroundColor: gradient,
+                    borderColor: color,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                };
+            });
+            
+            new Chart(costBreakdownCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ cost_breakdown_labels|safe }},
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'right',
+                            labels: {
+                                padding: 8,
+                                usePointStyle: true,
+                                font: { size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': £' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: {
+                            beginAtZero: true,
+                            stacked: false,
+                            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return '£' + value.toFixed(0); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
         {% endif %}
     } // End initCharts
     
