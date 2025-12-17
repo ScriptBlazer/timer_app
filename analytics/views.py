@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.db.models import Q
 import json
 from collections import defaultdict
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from customers.models import Customer
 from projects.models import Project
@@ -113,7 +113,8 @@ def statistics(request):
     
     # Sort by date and create lists for chart
     sorted_dates = sorted(daily_stats.keys())
-    daily_labels = [date.strftime('%m/%d') for date in sorted_dates]
+    # Labels: day and short month name (e.g. '5 Aug')
+    daily_labels = [date.strftime('%-d %b') for date in sorted_dates]
     daily_hours = [daily_stats[date] / 3600 for date in sorted_dates]
     daily_costs = [daily_cost_stats[date] for date in sorted_dates]
     
@@ -126,7 +127,8 @@ def statistics(request):
         weekly_cost_stats[week_start] += session.cost()
     
     sorted_weeks = sorted(weekly_stats.keys())
-    weekly_labels = [week.strftime('%m/%d') for week in sorted_weeks[-12:]]
+    # Labels: week start day and short month (e.g. '5 Aug')
+    weekly_labels = [week.strftime('%-d %b') for week in sorted_weeks[-12:]]
     weekly_hours = [weekly_stats[week] / 3600 for week in sorted_weeks[-12:]]
     weekly_costs = [weekly_cost_stats[week] for week in sorted_weeks[-12:]]
     
@@ -158,7 +160,11 @@ def statistics(request):
         monthly_stats[month_key]['sessions'] += 1
     
     sorted_months = sorted(monthly_stats.keys())
-    monthly_labels = [month.split('-')[1] + '/' + month.split('-')[0][2:] for month in sorted_months[-6:]]
+    # Labels: short month and 2‑digit year (e.g. 'Aug 25')
+    monthly_labels = [
+        datetime.strptime(month, '%Y-%m').strftime('%b %y')
+        for month in sorted_months[-6:]
+    ]
     monthly_hours = [monthly_stats[month]['hours'] for month in sorted_months[-6:]]
     monthly_costs = [monthly_stats[month]['cost'] for month in sorted_months[-6:]]
     
@@ -169,7 +175,10 @@ def statistics(request):
         session_duration_stats[date_key]['total_duration'] += session.duration_seconds()
         session_duration_stats[date_key]['count'] += 1
     
-    session_duration_labels = [date.strftime('%m/%d') for date in sorted(session_duration_stats.keys())]
+    # Labels: day and short month (e.g. '5 Aug')
+    session_duration_labels = [
+        date.strftime('%-d %b') for date in sorted(session_duration_stats.keys())
+    ]
     session_duration_avg = [
         (session_duration_stats[date]['total_duration'] / session_duration_stats[date]['count']) / 3600 
         if session_duration_stats[date]['count'] > 0 else 0
@@ -191,7 +200,8 @@ def statistics(request):
         date for timer_data in timer_cost_over_time.values() 
         for date in timer_data.keys()
     ))
-    cost_breakdown_labels = [date.strftime('%m/%d') for date in cost_breakdown_dates]
+    # Labels: day and short month (e.g. '5 Aug')
+    cost_breakdown_labels = [date.strftime('%-d %b') for date in cost_breakdown_dates]
     cost_breakdown_datasets = []
     for timer_name, timer_color in timer_names_for_cost.items():
         cost_breakdown_datasets.append({
