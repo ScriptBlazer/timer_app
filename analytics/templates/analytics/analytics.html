@@ -20,6 +20,33 @@
         margin-bottom: 2rem;
     }
 
+    /* Desktop-only analytics layout */
+    .analytics-desktop-only {
+        display: block;
+    }
+
+    .analytics-mobile-warning {
+        display: none;
+        padding: 1.5rem;
+        margin: 1rem 0 2rem;
+        border-radius: 12px;
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        color: #9a3412;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+        .analytics-desktop-only {
+            display: none;
+        }
+
+        .analytics-mobile-warning {
+            display: block;
+        }
+    }
+
     .stat-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         border-radius: 12px;
@@ -118,6 +145,15 @@
 <div class="page-header">
     <h1 class="page-title" style="font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px; color: #1d1d1f;">Analytics</h1>
 </div>
+
+<!-- Mobile warning -->
+<div class="analytics-mobile-warning">
+    This analytics dashboard is designed for larger screens. Please switch to desktop view or a wider screen to view this page.
+    <br><br>
+    You can still track time and manage customers and projects from your mobile device using the main app.
+</div>
+
+<div class="analytics-desktop-only">
 
 <!-- Summary Cards -->
 <div class="stats-grid">
@@ -306,6 +342,7 @@
     </div>
     {% endif %}
 </div>
+</div> {# /.analytics-desktop-only #}
 {% endblock %}
 
 {% block extra_js %}
