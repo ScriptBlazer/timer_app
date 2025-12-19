@@ -21,12 +21,17 @@
     <div class="search-box">
         <input type="text" id="projectSearch" class="form-input" placeholder="🔍 Search projects...">
     </div>
-    <div class="toggle-controls">
-        <label class="toggle-label">
-            <input type="checkbox" id="showCompleted" checked>
-            <span>Show completed projects</span>
-        </label>
+    <div class="sort-controls">
+        <label class="sort-label">Sort by:</label>
+        <button class="sort-btn" data-sort="name">Name</button>
+        <button class="sort-btn active" data-sort="recent">Most Recent</button>
     </div>
+</div>
+<div class="toggle-controls" style="margin-top: 1rem; margin-bottom: 1.5rem; padding: 0 1.25rem;">
+    <label class="toggle-label">
+        <input type="checkbox" id="showCompleted">
+        <span>Show completed projects</span>
+    </label>
 </div>
 
 <div class="card">
@@ -44,7 +49,7 @@
         </thead>
         <tbody>
             {% for project in projects %}
-            <tr class="project-row" data-status="{{ project.status }}" data-name="{{ project.name|lower }}" data-customer="{{ project.customer.name|lower }}">
+            <tr class="project-row" data-status="{{ project.status }}" data-name="{{ project.name|lower }}" data-customer="{{ project.customer.name|lower }}" data-original-index="{{ forloop.counter }}">
                 <td><a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a></td>
                 <td><a href="{% url 'customer_detail' project.customer.pk %}">{{ project.customer.name }}</a></td>
                 <td class="hide-mobile">
@@ -89,9 +94,46 @@
         });
     }
 
+    // Sort projects
+    const sortButtons = document.querySelectorAll('.sort-btn');
+    const tbody = document.querySelector('.table tbody');
+    
+    if (tbody && sortButtons.length > 0) {
+        sortButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                sortButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                const sortType = this.dataset.sort;
+                
+                // Get all visible rows (after filtering)
+                const rows = Array.from(tbody.querySelectorAll('.project-row:not([style*="display: none"])'));
+                
+                // Sort based on type
+                rows.sort((a, b) => {
+                    if (sortType === 'name') {
+                        // Sort alphabetically by project name
+                        const nameA = a.querySelector('td:first-child').textContent.trim().toLowerCase();
+                        const nameB = b.querySelector('td:first-child').textContent.trim().toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    } else {
+                        // Sort by original index (most recent first)
+                        const indexA = parseInt(a.dataset.originalIndex);
+                        const indexB = parseInt(b.dataset.originalIndex);
+                        return indexA - indexB;
+                    }
+                });
+                
+                // Re-append in sorted order (only visible rows)
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    }
+
     function filterProjects() {
         const searchTerm = projectSearch ? projectSearch.value.toLowerCase() : '';
-        const showCompletedProjects = showCompleted ? showCompleted.checked : true;
+        const showCompletedProjects = showCompleted ? showCompleted.checked : false;
         const rows = document.querySelectorAll('.project-row');
         
         rows.forEach(row => {
@@ -108,6 +150,12 @@
                 row.style.display = 'none';
             }
         });
+        
+        // Re-sort after filtering if a sort is active
+        const activeSortBtn = document.querySelector('.sort-btn.active');
+        if (activeSortBtn) {
+            activeSortBtn.click();
+        }
     }
 </script>
 {% endblock %}
