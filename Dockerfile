@@ -40,6 +40,24 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 FROM builder-base AS app-base
 
+# Install system libraries required for WeasyPrint
+RUN apt update && \
+    apt install --no-install-recommends --yes --quiet \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libpangoft2-1.0-0 \
+    libgobject-2.0-0 \
+    libglib2.0-0 \
+    libcairo2 \
+    libgdk-pixbuf-xlib-2.0-0 \
+    libffi8 \
+    libxml2 \
+    libxslt1.1 \
+    shared-mime-info \
+    fonts-liberation \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy venv from previous stage
