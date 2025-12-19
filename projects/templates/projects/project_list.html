@@ -157,6 +157,11 @@
             activeSortBtn.click();
         }
     }
+
+    // Apply initial filter on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        filterProjects();
+    });
 </script>
 {% endblock %}
 

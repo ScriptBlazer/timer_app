@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'analytics',
     'customers',
     'projects',
+    'deliverables',
     'workspace_admin',
 ]
 

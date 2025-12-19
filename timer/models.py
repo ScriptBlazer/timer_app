@@ -126,6 +126,7 @@ class TimerSession(models.Model):
     end_time = models.DateTimeField(null=True, blank=True)
     price_per_hour = models.DecimalField(max_digits=10, decimal_places=2)  # Snapshot of price at session start
     note = models.TextField(blank=True, default='')
+    deliverable = models.ForeignKey('deliverables.Deliverable', on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions_created')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

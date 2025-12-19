@@ -35,11 +35,12 @@ class SessionNoteForm(forms.ModelForm):
 class SessionEditForm(forms.ModelForm):
     class Meta:
         model = TimerSession
-        fields = ['start_time', 'end_time', 'note']
+        fields = ['start_time', 'end_time', 'note', 'deliverable']
         widgets = {
             'start_time': forms.DateTimeInput(attrs={'class': 'form-input', 'type': 'datetime-local'}),
             'end_time': forms.DateTimeInput(attrs={'class': 'form-input', 'type': 'datetime-local'}),
             'note': forms.Textarea(attrs={'class': 'form-input', 'placeholder': 'Describe what you worked on...', 'rows': 4}),
+            'deliverable': forms.Select(attrs={'class': 'form-input'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -50,4 +51,12 @@ class SessionEditForm(forms.ModelForm):
                 self.initial['start_time'] = self.instance.start_time.strftime('%Y-%m-%dT%H:%M')
             if self.instance.end_time:
                 self.initial['end_time'] = self.instance.end_time.strftime('%Y-%m-%dT%H:%M')
+        
+        # Filter deliverables by project
+        if self.instance and self.instance.pk:
+            project = self.instance.project_timer.project
+            from deliverables.models import Deliverable
+            self.fields['deliverable'].queryset = Deliverable.objects.filter(project=project).order_by('name')
+            self.fields['deliverable'].required = False
+            self.fields['deliverable'].empty_label = 'No deliverable'
 

@@ -1,0 +1,67 @@
+{% extends "timer/base.html" %}
+
+{% block title %}Edit Deliverable - {{ deliverable.name }} - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' deliverable.project.customer.pk %}">{{ deliverable.project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' deliverable.project.pk %}">{{ deliverable.project.name }}</a>
+    <span>›</span>
+    <a href="{% url 'deliverables:deliverable_list' deliverable.project.pk %}">Deliverables</a>
+    <span>›</span>
+    <a href="{% url 'deliverables:deliverable_detail' deliverable.pk %}">{{ deliverable.name }}</a>
+    <span>›</span>
+    <span>Edit</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Edit Deliverable</h1>
+    <div class="actions">
+        <a href="{% url 'deliverables:deliverable_detail' deliverable.pk %}" class="btn btn-secondary">Back</a>
+    </div>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.name.id_for_label }}" class="form-label">Name:</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <ul class="errorlist">
+                    {% for error in form.name.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}" class="form-label">Description (optional):</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <ul class="errorlist">
+                    {% for error in form.description.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">Save Changes</button>
+            <a href="{% url 'deliverables:deliverable_detail' deliverable.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
