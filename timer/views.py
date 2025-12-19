@@ -6,7 +6,9 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
+from django.db import connection
 import json
 
 from .models import Timer, ProjectTimer, TimerSession, TeamMember, PendingRegistration, CustomColor, get_workspace_owner, is_workspace_owner, get_workspace_users
@@ -599,3 +601,75 @@ def session_delete(request, pk):
     return render(request, 'timer/session_confirm_delete.html', {
         'session': session
     })
+
+
+@csrf_exempt
+def health_check(request):
+    """Public health check endpoint - no authentication required"""
+    from django.db import connection
+    
+    status = "ok"
+    http_status = 200
+    errors = []
+    
+    # Check database connection
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except Exception as e:
+        status = "error"
+        http_status = 500
+        errors.append(f"Database connection failed: {str(e)}")
+    
+    # Check Django app is responding (if we got here, it is)
+    # But we can do a simple model query to be sure
+    try:
+        User.objects.first()
+    except Exception as e:
+        status = "error"
+        http_status = 500
+        errors.append(f"Django ORM failed: {str(e)}")
+    
+    response_data = {
+        "status": status,
+        "app": "timer-app",
+        "timestamp": timezone.now().isoformat()
+    }
+    
+    if errors:
+        response_data["errors"] = errors
+    
+    return JsonResponse(response_data, status=http_status)
+
+
+def check_health_status():
+    """
+    Internal health check function that returns status and details.
+    Returns: (status: str, details: dict)
+    """
+    from django.db import connection
+    
+    status = "ok"
+    details = {
+        "django": "ok",
+        "database": "ok"
+    }
+    
+    # Check database connection
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except Exception as e:
+        status = "error"
+        details["database"] = f"error: {str(e)}"
+    
+    # Check Django ORM
+    try:
+        User.objects.first()
+    except Exception as e:
+        status = "error"
+        details["django"] = f"error: {str(e)}"
+    
+    return status, details
