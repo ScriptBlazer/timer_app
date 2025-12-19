@@ -565,8 +565,8 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Deliverable updated successfully - no UI update needed
-                            // The deliverable link is already in the template and will show/hide based on selection
+                            // Reload page to refresh all data
+                            location.reload();
                         } else {
                             alert('Error: ' + (data.error || 'Failed to update deliverable'));
                             // Reset select to original value
@@ -593,8 +593,8 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Deliverable removed successfully - no UI update needed
-                            // The deliverable link is already in the template and will hide when no deliverable is selected
+                            // Reload page to refresh all data
+                            location.reload();
                         } else {
                             alert('Error: ' + (data.error || 'Failed to update deliverable'));
                             // Reset select to original value
@@ -680,8 +680,8 @@
                     .then(response => response.json())
                     .then(assignData => {
                         if (assignData.success) {
-                            // Deliverable assigned successfully - the link will be visible on next page load
-                            // No need to update UI dynamically since the template handles it
+                            // Reload page to refresh all data
+                            location.reload();
                         } else {
                             alert('Deliverable created but failed to assign to session. Please assign manually.');
                         }

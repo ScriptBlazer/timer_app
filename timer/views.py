@@ -503,21 +503,24 @@ def session_update_note(request, pk):
     
     try:
         data = json.loads(request.body)
-        note = data.get('note', '')
+        note = data.get('note')
         deliverable_id = data.get('deliverable')
         
-        session.note = note
+        # Only update note if it's provided in the request
+        if note is not None:
+            session.note = note
         
         # Update deliverable if provided
-        if deliverable_id:
+        if deliverable_id is not None:
             from deliverables.models import Deliverable
-            try:
-                deliverable = Deliverable.objects.get(pk=deliverable_id, project=session.project_timer.project)
-                session.deliverable = deliverable
-            except Deliverable.DoesNotExist:
-                return JsonResponse({'success': False, 'error': 'Invalid deliverable'}, status=400)
-        else:
-            session.deliverable = None
+            if deliverable_id:
+                try:
+                    deliverable = Deliverable.objects.get(pk=deliverable_id, project=session.project_timer.project)
+                    session.deliverable = deliverable
+                except Deliverable.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Invalid deliverable'}, status=400)
+            else:
+                session.deliverable = None
         
         session.save()
         
