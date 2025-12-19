@@ -40,6 +40,13 @@
     <p><strong>Total Time:</strong> {{ project.total_duration_seconds|format_duration }}</p>
     <p><strong>Total Cost:</strong> {{ project.total_cost|format_currency }}</p>
     <p><strong>Timers:</strong> {{ project_timers.count }}</p>
+    <p><strong>Deliverables:</strong> 
+        <a href="{% url 'deliverables:deliverable_list' project.pk %}">{{ project.deliverables.count }}</a>
+        <a href="{% url 'deliverables:deliverable_add' project.pk %}" style="margin-left: 0.5rem; font-size: 0.875rem; color: #667eea;">+ Add</a>
+    </p>
+    <div style="margin-top: 1rem;">
+        <a href="{% url 'project_summary' project.pk %}" class="btn">Summary</a>
+    </div>
 </div>
 
 {% if project.status == 'completed' %}
@@ -112,7 +119,7 @@
             </div>
         </div>
         
-        <div class="timer-sessions-container" id="sessions-{{ project_timer.pk }}" style="display: none;">
+        <div class="timer-sessions-container" id="sessions-{{ project_timer.pk }}">
             <div class="sessions-header">
                 <h4>Sessions</h4>
             </div>
@@ -143,6 +150,35 @@
                         <div class="session-cost-container">
                             <span class="session-cost">{{ session.cost|format_currency }}</span>
                             <span class="session-rate-recorded">Recorded at {{ session.price_per_hour|format_currency }}/hr</span>
+                        </div>
+                    </div>
+                    <div class="session-deliverable-container" style="margin-bottom: 0.75rem;">
+                        <label style="font-weight: 600; color: #666; font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Deliverable:</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select class="session-deliverable-select form-input" data-session-id="{{ session.pk }}" style="flex: 1; font-size: 0.875rem;">
+                                <option value="">No deliverable</option>
+                                {% for deliverable in project.deliverables.all %}
+                                <option value="{{ deliverable.pk }}" {% if session.deliverable and session.deliverable.pk == deliverable.pk %}selected{% endif %}>{{ deliverable.name }}</option>
+                                {% endfor %}
+                                <option value="__add_new__">➕ Add new deliverable...</option>
+                            </select>
+                            {% if session.deliverable %}
+                            <a href="{% url 'deliverables:deliverable_detail' session.deliverable.pk %}" style="color: #667eea; text-decoration: none; font-weight: 500; font-size: 0.875rem;" title="View deliverable"></a>
+                            {% endif %}
+                        </div>
+                        <div class="session-add-deliverable-inline" data-session-id="{{ session.pk }}" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label class="form-label" style="font-size: 0.875rem;">Deliverable Name:</label>
+                                <input type="text" class="new-deliverable-name form-input" placeholder="e.g., Video 1, Kitchen wall, Landing page">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label class="form-label" style="font-size: 0.875rem;">Description (optional):</label>
+                                <textarea class="new-deliverable-description form-input" rows="2" placeholder="Optional description..."></textarea>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="create-deliverable-session-btn btn" style="flex: 1; font-size: 0.875rem;">Create & Assign</button>
+                                <button type="button" class="cancel-add-deliverable-session-btn btn btn-secondary" style="font-size: 0.875rem;">Cancel</button>
+                            </div>
                         </div>
                     </div>
                     <div class="session-note-container">
@@ -184,6 +220,32 @@
 <div id="noteModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">Add Session Note</div>
+        <div id="modalErrorMessage" style="display: none; margin: 1rem; padding: 0.75rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c33; font-size: 0.875rem;"></div>
+        <div class="form-group">
+            <label for="sessionDeliverable" class="form-label">Deliverable (optional):</label>
+            <select id="sessionDeliverable" class="form-input">
+                <option value="">No deliverable</option>
+                {% for deliverable in project.deliverables.all %}
+                <option value="{{ deliverable.pk }}">{{ deliverable.name }}</option>
+                {% endfor %}
+                <option value="__add_new__">➕ Add new deliverable...</option>
+            </select>
+            <div id="addDeliverableInline" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
+                <div id="deliverableError" style="display: none; margin-bottom: 0.75rem; padding: 0.5rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c33; font-size: 0.875rem;"></div>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label for="newDeliverableName" class="form-label" style="font-size: 0.875rem;">Deliverable Name:</label>
+                    <input type="text" id="newDeliverableName" class="form-input" placeholder="e.g., Video 1, Kitchen wall, Landing page">
+                </div>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label for="newDeliverableDescription" class="form-label" style="font-size: 0.875rem;">Description (optional):</label>
+                    <textarea id="newDeliverableDescription" class="form-input" rows="2" placeholder="Optional description..."></textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" id="createDeliverableBtn" class="btn" style="flex: 1;">Create & Select</button>
+                    <button type="button" id="cancelAddDeliverableBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
         <div class="form-group">
             <label for="sessionNote" class="form-label">What did you work on?</label>
             <textarea id="sessionNote" class="form-textarea" rows="4" placeholder="Describe what you worked on..."></textarea>
@@ -238,14 +300,12 @@
             const sessionsContainer = document.getElementById(`sessions-${timerId}`);
             const toggleIcon = this.querySelector('.toggle-icon');
             
-            if (sessionsContainer.style.display === 'none') {
-                sessionsContainer.style.display = 'block';
-                sessionsContainer.classList.add('expanded');
-                toggleIcon.classList.add('rotated');
-            } else {
-                sessionsContainer.style.display = 'none';
+            if (sessionsContainer.classList.contains('expanded')) {
                 sessionsContainer.classList.remove('expanded');
                 toggleIcon.classList.remove('rotated');
+            } else {
+                sessionsContainer.classList.add('expanded');
+                toggleIcon.classList.add('rotated');
             }
         });
     });
@@ -293,6 +353,17 @@
             .then(data => {
                 if (data.success) {
                     currentSessionId = data.session_id;
+                    // Clear any previous errors when opening modal
+                    document.getElementById('modalErrorMessage').style.display = 'none';
+                    document.getElementById('modalErrorMessage').textContent = '';
+                    document.getElementById('deliverableError').style.display = 'none';
+                    document.getElementById('deliverableError').textContent = '';
+                    document.getElementById('sessionNote').value = '';
+                    document.getElementById('sessionDeliverable').value = '';
+                    document.getElementById('addDeliverableInline').style.display = 'none';
+                    const saveBtn = document.getElementById('saveNote');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save';
                     document.getElementById('noteModal').classList.add('active');
                 } else {
                     alert('Error: ' + data.error);
@@ -305,9 +376,110 @@
         });
     });
 
+    // Handle deliverable dropdown change in modal
+    document.getElementById('sessionDeliverable').addEventListener('change', function() {
+        const addDeliverableInline = document.getElementById('addDeliverableInline');
+        const errorDiv = document.getElementById('deliverableError');
+        if (this.value === '__add_new__') {
+            addDeliverableInline.style.display = 'block';
+            this.value = ''; // Reset to empty so it doesn't interfere
+            // Clear any previous errors
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        } else {
+            addDeliverableInline.style.display = 'none';
+            // Clear errors when hiding the form
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        }
+    });
+
+    // Cancel add deliverable in modal
+    document.getElementById('cancelAddDeliverableBtn').addEventListener('click', function() {
+        document.getElementById('addDeliverableInline').style.display = 'none';
+        document.getElementById('sessionDeliverable').value = '';
+        document.getElementById('newDeliverableName').value = '';
+        document.getElementById('newDeliverableDescription').value = '';
+        // Clear errors
+        const errorDiv = document.getElementById('deliverableError');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    });
+
+    // Create deliverable inline in modal
+    document.getElementById('createDeliverableBtn').addEventListener('click', function() {
+        const name = document.getElementById('newDeliverableName').value.trim();
+        const description = document.getElementById('newDeliverableDescription').value.trim();
+        const errorDiv = document.getElementById('deliverableError');
+        
+        // Hide previous errors
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        
+        if (!name) {
+            errorDiv.textContent = 'Please enter a deliverable name';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        fetch(`/projects/{{ project.pk }}/deliverables/add-ajax/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: name, description: description })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add to dropdown
+                const select = document.getElementById('sessionDeliverable');
+                const option = document.createElement('option');
+                option.value = data.deliverable.id;
+                option.textContent = data.deliverable.name;
+                select.insertBefore(option, select.lastElementChild); // Insert before "Add new" option
+                select.value = data.deliverable.id;
+                
+                // Hide inline form and clear errors
+                document.getElementById('addDeliverableInline').style.display = 'none';
+                document.getElementById('newDeliverableName').value = '';
+                document.getElementById('newDeliverableDescription').value = '';
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = 'Error: ' + (data.error || 'Failed to create deliverable');
+                errorDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorDiv.textContent = 'An error occurred creating the deliverable';
+            errorDiv.style.display = 'block';
+        });
+    });
+
     // Save note (for new session)
     document.getElementById('saveNote').addEventListener('click', function() {
         const note = document.getElementById('sessionNote').value;
+        const deliverableId = document.getElementById('sessionDeliverable').value;
+        const errorDiv = document.getElementById('modalErrorMessage');
+        
+        // Hide previous errors
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        
+        // Don't save if "Add new" is selected
+        if (deliverableId === '__add_new__') {
+            errorDiv.textContent = 'Please create the deliverable first or select an existing one';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        // Disable save button to prevent double submission
+        const saveBtn = document.getElementById('saveNote');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
         
         fetch(`/sessions/${currentSessionId}/note/`, {
             method: 'POST',
@@ -315,27 +487,218 @@
                 'X-CSRFToken': csrftoken,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ note: note })
+            body: JSON.stringify({ 
+                note: note,
+                deliverable: deliverableId || null
+            })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Only reload on success - this closes the modal
                 location.reload();
             } else {
-                alert('Error: ' + data.error);
+                // Show error and re-enable button
+                errorDiv.textContent = 'Error: ' + (data.error || 'Failed to save session');
+                errorDiv.style.display = 'block';
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred saving the note');
+            errorDiv.textContent = 'An error occurred saving the note';
+            errorDiv.style.display = 'block';
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
         });
     });
 
     // Cancel note
     document.getElementById('cancelNote').addEventListener('click', function() {
+        // Clear all form data and errors
         document.getElementById('noteModal').classList.remove('active');
         document.getElementById('sessionNote').value = '';
+        document.getElementById('sessionDeliverable').value = '';
+        document.getElementById('addDeliverableInline').style.display = 'none';
+        document.getElementById('newDeliverableName').value = '';
+        document.getElementById('newDeliverableDescription').value = '';
+        document.getElementById('modalErrorMessage').style.display = 'none';
+        document.getElementById('modalErrorMessage').textContent = '';
+        document.getElementById('deliverableError').style.display = 'none';
+        document.getElementById('deliverableError').textContent = '';
+        const saveBtn = document.getElementById('saveNote');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+        // Reload to refresh the page state
         location.reload();
+    });
+
+    // Handle deliverable selector for existing sessions
+    document.querySelectorAll('.session-deliverable-select').forEach(select => {
+        // Store original value
+        const originalValue = select.value;
+        
+        select.addEventListener('change', function() {
+            const sessionId = this.dataset.sessionId;
+            const value = this.value;
+            const inlineForm = document.querySelector(`.session-add-deliverable-inline[data-session-id="${sessionId}"]`);
+            
+            if (value === '__add_new__') {
+                inlineForm.style.display = 'block';
+                // Store current value before resetting
+                this.dataset.originalValue = this.value === '__add_new__' ? originalValue : this.value;
+                this.value = ''; // Reset to empty so it doesn't interfere
+            } else {
+                inlineForm.style.display = 'none';
+                // Update deliverable for session
+                if (value) {
+                    const selectElement = this;
+                    fetch(`/sessions/${sessionId}/note/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ deliverable: value })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Deliverable updated successfully - no UI update needed
+                            // The deliverable link is already in the template and will show/hide based on selection
+                        } else {
+                            alert('Error: ' + (data.error || 'Failed to update deliverable'));
+                            // Reset select to original value
+                            selectElement.value = selectElement.dataset.originalValue || '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred updating the deliverable');
+                        // Reset select to original value
+                        selectElement.value = selectElement.dataset.originalValue || '';
+                    });
+                } else {
+                    // Remove deliverable
+                    const selectElement = this;
+                    fetch(`/sessions/${sessionId}/note/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ deliverable: null })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Deliverable removed successfully - no UI update needed
+                            // The deliverable link is already in the template and will hide when no deliverable is selected
+                        } else {
+                            alert('Error: ' + (data.error || 'Failed to update deliverable'));
+                            // Reset select to original value
+                            selectElement.value = selectElement.dataset.originalValue || '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred updating the deliverable');
+                        // Reset select to original value
+                        selectElement.value = selectElement.dataset.originalValue || '';
+                    });
+                }
+            }
+        });
+    });
+
+    // Cancel add deliverable for existing session
+    document.querySelectorAll('.cancel-add-deliverable-session-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const inlineForm = this.closest('.session-add-deliverable-inline');
+            const sessionId = inlineForm.dataset.sessionId;
+            const select = document.querySelector(`.session-deliverable-select[data-session-id="${sessionId}"]`);
+            
+            inlineForm.style.display = 'none';
+            // Restore original value if stored, otherwise empty
+            select.value = select.dataset.originalValue || '';
+            delete select.dataset.originalValue;
+            
+            // Clear form
+            inlineForm.querySelector('.new-deliverable-name').value = '';
+            inlineForm.querySelector('.new-deliverable-description').value = '';
+        });
+    });
+
+    // Create deliverable inline for existing session
+    document.querySelectorAll('.create-deliverable-session-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const inlineForm = this.closest('.session-add-deliverable-inline');
+            const sessionId = inlineForm.dataset.sessionId;
+            const name = inlineForm.querySelector('.new-deliverable-name').value.trim();
+            const description = inlineForm.querySelector('.new-deliverable-description').value.trim();
+            const select = document.querySelector(`.session-deliverable-select[data-session-id="${sessionId}"]`);
+            
+            if (!name) {
+                alert('Please enter a deliverable name');
+                return;
+            }
+
+            fetch(`/projects/{{ project.pk }}/deliverables/add-ajax/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: name, description: description })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add to dropdown
+                    const option = document.createElement('option');
+                    option.value = data.deliverable.id;
+                    option.textContent = data.deliverable.name;
+                    select.insertBefore(option, select.lastElementChild);
+                    select.value = data.deliverable.id;
+                    
+                    // Hide inline form
+                    inlineForm.style.display = 'none';
+                    inlineForm.querySelector('.new-deliverable-name').value = '';
+                    inlineForm.querySelector('.new-deliverable-description').value = '';
+                    
+                    // Automatically assign to session
+                    const selectElement = document.querySelector(`.session-deliverable-select[data-session-id="${sessionId}"]`);
+                    fetch(`/sessions/${sessionId}/note/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ deliverable: data.deliverable.id })
+                    })
+                    .then(response => response.json())
+                    .then(assignData => {
+                        if (assignData.success) {
+                            // Deliverable assigned successfully - the link will be visible on next page load
+                            // No need to update UI dynamically since the template handles it
+                        } else {
+                            alert('Deliverable created but failed to assign to session. Please assign manually.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Deliverable created but failed to assign to session. Please assign manually.');
+                    });
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to create deliverable'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred creating the deliverable');
+            });
+        });
     });
 
     // Inline edit session notes

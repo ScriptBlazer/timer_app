@@ -10,3 +10,4 @@ class ProjectForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Project name'}),
         }
 
+

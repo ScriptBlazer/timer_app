@@ -8,5 +8,8 @@ urlpatterns = [
     path('<int:pk>/edit/', views.project_edit, name='project_edit'),
     path('<int:pk>/delete/', views.project_delete, name='project_delete'),
     path('<int:pk>/complete/', views.project_complete, name='project_complete'),
+    path('<int:pk>/summary/', views.project_summary, name='project_summary'),
+    path('<int:pk>/summary/pdf/', views.project_summary_pdf, name='project_summary_pdf'),
 ]
+
 

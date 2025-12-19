@@ -10,6 +10,7 @@ urlpatterns = [
     path('analytics/', include('analytics.urls')),
     path('customers/', include('customers.urls')),
     path('projects/', include('projects.urls')),
+    path('', include('deliverables.urls')),
     path('admin-panel/', include('workspace_admin.urls')),
 ]
 

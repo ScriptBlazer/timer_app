@@ -1,0 +1,100 @@
+{% extends "timer/base.html" %}
+{% load timer_filters %}
+
+{% block title %}{{ deliverable.name }} - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' deliverable.project.customer.pk %}">{{ deliverable.project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' deliverable.project.pk %}">{{ deliverable.project.name }}</a>
+    <span>›</span>
+    <a href="{% url 'deliverables:deliverable_list' deliverable.project.pk %}">Deliverables</a>
+    <span>›</span>
+    <span>{{ deliverable.name }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ deliverable.name }}</h1>
+    <div class="actions">
+        <a href="{% url 'deliverables:deliverable_edit' deliverable.pk %}" class="btn btn-secondary">Edit</a>
+        <button class="btn btn-danger" onclick="document.getElementById('deleteModal').classList.add('active')">Delete</button>
+        <a href="{% url 'deliverables:deliverable_list' deliverable.project.pk %}" class="btn btn-secondary">Back to Deliverables</a>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Details</h3>
+    <p><strong>Project:</strong> <a href="{% url 'project_detail' deliverable.project.pk %}">{{ deliverable.project.name }}</a></p>
+    <p><strong>Customer:</strong> <a href="{% url 'customer_detail' deliverable.project.customer.pk %}">{{ deliverable.project.customer.name }}</a></p>
+    {% if deliverable.description %}
+    <p><strong>Description:</strong> {{ deliverable.description }}</p>
+    {% endif %}
+    <p><strong>Total Time:</strong> {{ deliverable.total_duration_seconds|format_duration }}</p>
+    <p><strong>Total Cost:</strong> {{ deliverable.total_cost|format_currency }}</p>
+    <p><strong>Sessions:</strong> {{ deliverable.session_count }}</p>
+</div>
+
+<h2 style="margin-top: 2rem; margin-bottom: 1rem;">Linked Sessions</h2>
+
+{% if sessions %}
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Timer</th>
+                <th class="hide-mobile">Start Time</th>
+                <th class="hide-mobile">End Time</th>
+                <th>Duration</th>
+                <th class="hide-mobile">Cost</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions %}
+            <tr>
+                <td>{{ session.project_timer.timer.task_name }}</td>
+                <td class="hide-mobile">{{ session.start_time|date:"M d, Y H:i" }}</td>
+                <td class="hide-mobile">{{ session.end_time|date:"M d, Y H:i" }}</td>
+                <td>{{ session.duration_seconds|format_duration }}</td>
+                <td class="hide-mobile">{{ session.cost|format_currency }}</td>
+                <td class="actions">
+                    <a href="{% url 'project_detail' session.project_timer.project.pk %}" class="btn btn-small">View Project</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p>No sessions linked to this deliverable yet.</p>
+</div>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">Delete Deliverable</div>
+        <p>Are you sure you want to delete "{{ deliverable.name }}"?</p>
+        <p style="color: #c33; font-size: 0.875rem; margin-top: 0.5rem;">
+            <strong>Warning:</strong> This action cannot be undone. All sessions linked to this deliverable will have their deliverable assignment removed.
+        </p>
+        <div class="modal-footer">
+            <form method="post" action="{% url 'deliverables:deliverable_delete' deliverable.pk %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+            <button onclick="document.getElementById('deleteModal').classList.remove('active')" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

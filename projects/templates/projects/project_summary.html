@@ -1,0 +1,153 @@
+{% extends "timer/base.html" %}
+{% load timer_filters %}
+
+{% block title %}Project Summary - {{ project.name }} - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' project.customer.pk %}">{{ project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a>
+    <span>›</span>
+    <span>Summary</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Project Summary - {{ project.name }}</h1>
+    <div class="actions">
+        <a href="{% url 'project_summary_pdf' project.pk %}" class="btn btn-success" target="_blank">📄 Generate PDF</a>
+        <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary">Back to Project</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h2 style="margin-top: 0; margin-bottom: 1rem;">Project Overview</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+        <div>
+            <p style="margin: 0; color: #666; font-size: 0.875rem;">Customer</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 1.125rem; font-weight: 600;">{{ project.customer.name }}</p>
+        </div>
+        <div>
+            <p style="margin: 0; color: #666; font-size: 0.875rem;">Status</p>
+            <p style="margin: 0.25rem 0 0 0;">
+                <span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span>
+            </p>
+        </div>
+        <div>
+            <p style="margin: 0; color: #666; font-size: 0.875rem;">Total Time</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 1.125rem; font-weight: 600; color: #667eea;">{{ total_time_seconds|format_duration }}</p>
+        </div>
+        <div>
+            <p style="margin: 0; color: #666; font-size: 0.875rem;">Total Cost</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 1.125rem; font-weight: 600; color: #667eea;">{{ total_cost|format_currency }}</p>
+        </div>
+    </div>
+</div>
+
+{% if timer_summaries %}
+<div class="card" style="margin-bottom: 2rem;">
+    <h2 style="margin-top: 0; margin-bottom: 1rem;">Timers Breakdown</h2>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Timer</th>
+                    <th class="hide-mobile">Sessions</th>
+                    <th>Total Time</th>
+                    <th>Total Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for summary in timer_summaries %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {{ summary.timer.header_color }};"></span>
+                            {{ summary.timer.task_name }}
+                        </div>
+                    </td>
+                    <td class="hide-mobile">{{ summary.session_count }}</td>
+                    <td>{{ summary.total_time_seconds|format_duration }}</td>
+                    <td>{{ summary.total_cost|format_currency }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="font-weight: 600; border-top: 2px solid #e0e0e0;">
+                    <td>Total</td>
+                    <td class="hide-mobile"></td>
+                    <td>{{ total_time_seconds|format_duration }}</td>
+                    <td>{{ total_cost|format_currency }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if deliverable_summaries %}
+<div class="card" style="margin-bottom: 2rem;">
+    <h2 style="margin-top: 0; margin-bottom: 1rem;">Deliverables Breakdown</h2>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Deliverable</th>
+                    <th class="hide-mobile">Description</th>
+                    <th class="hide-mobile">Sessions</th>
+                    <th>Total Time</th>
+                    <th>Total Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for summary in deliverable_summaries %}
+                <tr>
+                    <td>{{ summary.deliverable.name }}</td>
+                    <td class="hide-mobile">{{ summary.deliverable.description|truncatewords:10|default:"—" }}</td>
+                    <td class="hide-mobile">{{ summary.session_count }}</td>
+                    <td>{{ summary.total_time_seconds|format_duration }}</td>
+                    <td>{{ summary.total_cost|format_currency }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="font-weight: 600; border-top: 2px solid #e0e0e0;">
+                    <td>Total</td>
+                    <td class="hide-mobile"></td>
+                    <td class="hide-mobile"></td>
+                    <td>{{ total_deliverable_time|format_duration }}</td>
+                    <td>{{ total_deliverable_cost|format_currency }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card" style="background: #f5f5f5; border: 2px solid #667eea; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <p style="margin: 0; font-size: 0.875rem; color: #666;">Ready to Bill</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 700; color: #667eea;">{{ total_cost|format_currency }}</p>
+        </div>
+        <div style="text-align: right;">
+            <p style="margin: 0; font-size: 0.875rem; color: #666;">Total Time</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: 600; color: #333;">{{ total_time_seconds|format_duration }}</p>
+        </div>
+    </div>
+</div>
+
+{% if not timer_summaries and not deliverable_summaries %}
+<div class="card">
+    <p style="text-align: center; color: #999; padding: 2rem;">No timers or deliverables yet for this project.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+

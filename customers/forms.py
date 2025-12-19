@@ -10,3 +10,4 @@ class CustomerForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Customer name'}),
         }
 
+

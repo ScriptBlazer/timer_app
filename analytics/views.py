@@ -12,6 +12,7 @@ from timer.models import (
     Timer, TimerSession,
     get_workspace_users
 )
+from deliverables.models import Deliverable
 
 
 @login_required
@@ -68,6 +69,26 @@ def statistics(request):
     projects = Project.objects.filter(customer__user__in=workspace_users)
     active_projects = projects.filter(status='active').count()
     completed_projects = projects.filter(status='completed').count()
+    
+    # Deliverables statistics
+    deliverables = Deliverable.objects.filter(project__customer__user__in=workspace_users)
+    total_deliverables = deliverables.count()
+    deliverables_with_sessions = deliverables.filter(sessions__end_time__isnull=False).distinct().count()
+    
+    deliverable_stats = []
+    for deliverable in deliverables:
+        deliverable_sessions = completed_sessions.filter(deliverable=deliverable)
+        if deliverable_sessions.exists():
+            deliverable_time = sum(s.duration_seconds() for s in deliverable_sessions)
+            deliverable_cost = sum(s.cost() for s in deliverable_sessions)
+            deliverable_stats.append({
+                'name': deliverable.name,
+                'project': deliverable.project.name,
+                'time_seconds': deliverable_time,
+                'cost': deliverable_cost,
+                'session_count': deliverable_sessions.count()
+            })
+    deliverable_stats.sort(key=lambda x: x['time_seconds'], reverse=True)
     
     project_stats = []
     for project in projects:
@@ -272,6 +293,9 @@ def statistics(request):
         'cost_breakdown_datasets': json.dumps(cost_breakdown_datasets),
         'total_timers': timers.count(),
         'total_customers': customers.count(),
+        'total_deliverables': total_deliverables,
+        'deliverables_with_sessions': deliverables_with_sessions,
+        'deliverable_stats': deliverable_stats[:10],  # Top 10
         'timer_names': json.dumps(timer_names),
         'timer_hours': json.dumps(timer_hours),
         'timer_colors': json.dumps(timer_colors),

@@ -17,7 +17,7 @@ from .forms import RegisterForm, TimerForm, SessionNoteForm, SessionEditForm
 
 
 def check_workspace_permission(request, obj):
-    """Check if user has permission to access this object (customer/project/timer)"""
+    """Check if user has permission to access this object (customer/project/timer/deliverable)"""
     workspace_users = get_workspace_users(request.user)
     
     # Import here to avoid circular imports
@@ -36,6 +36,14 @@ def check_workspace_permission(request, obj):
             return obj.project.customer.user in workspace_users
     elif isinstance(obj, TimerSession):
         return obj.project_timer.project.customer.user in workspace_users
+    else:
+        # Check if it's a Deliverable (import here to avoid circular imports)
+        try:
+            from deliverables.models import Deliverable
+            if isinstance(obj, Deliverable):
+                return obj.project.customer.user in workspace_users
+        except ImportError:
+            pass
     
     return False
 
@@ -486,7 +494,7 @@ def timer_stop(request, pk):
 @login_required
 @require_POST
 def session_update_note(request, pk):
-    """Update a session's note (AJAX endpoint)"""
+    """Update a session's note and deliverable (AJAX endpoint)"""
     session = get_object_or_404(TimerSession, pk=pk)
     
     # Check permission
@@ -496,13 +504,39 @@ def session_update_note(request, pk):
     try:
         data = json.loads(request.body)
         note = data.get('note', '')
+        deliverable_id = data.get('deliverable')
+        
         session.note = note
+        
+        # Update deliverable if provided
+        if deliverable_id:
+            from deliverables.models import Deliverable
+            try:
+                deliverable = Deliverable.objects.get(pk=deliverable_id, project=session.project_timer.project)
+                session.deliverable = deliverable
+            except Deliverable.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Invalid deliverable'}, status=400)
+        else:
+            session.deliverable = None
+        
         session.save()
         
-        return JsonResponse({
+        # Include deliverable info in response if it exists
+        deliverable_info = None
+        if session.deliverable:
+            deliverable_info = {
+                'id': session.deliverable.pk,
+                'name': session.deliverable.name
+            }
+        
+        response_data = {
             'success': True,
-            'note': session.note
-        })
+            'note': session.note,
+        }
+        if deliverable_info:
+            response_data['deliverable'] = deliverable_info
+        
+        return JsonResponse(response_data)
     except json.JSONDecodeError:
         return JsonResponse({
             'success': False,

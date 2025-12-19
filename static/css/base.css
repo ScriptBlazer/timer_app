@@ -711,7 +711,14 @@ a:hover {
 }
 
 .timer-sessions-container.expanded {
-    max-height: 2000px;
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Ensure sessions list can scroll when container is expanded */
+.timer-sessions-container.expanded .sessions-list {
+    max-height: 100%;
 }
 
 .sessions-header {

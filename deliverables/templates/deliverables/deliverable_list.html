@@ -1,0 +1,66 @@
+{% extends "timer/base.html" %}
+{% load timer_filters %}
+
+{% block title %}Deliverables - {{ project.name }} - Timer Tracker{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    <span>›</span>
+    <a href="{% url 'customer_list' %}">Customers</a>
+    <span>›</span>
+    <a href="{% url 'customer_detail' project.customer.pk %}">{{ project.customer.name }}</a>
+    <span>›</span>
+    <a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a>
+    <span>›</span>
+    <span>Deliverables</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Deliverables - {{ project.name }}</h1>
+    <div class="actions">
+        <a href="{% url 'deliverables:deliverable_add' project.pk %}" class="btn btn-success">Add Deliverable</a>
+        <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary">Back to Project</a>
+    </div>
+</div>
+
+{% if deliverables %}
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th class="hide-mobile">Description</th>
+                <th class="hide-mobile">Sessions</th>
+                <th class="hide-mobile">Total Time</th>
+                <th class="hide-mobile">Total Cost</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for deliverable in deliverables %}
+            <tr>
+                <td><a href="{% url 'deliverables:deliverable_detail' deliverable.pk %}">{{ deliverable.name }}</a></td>
+                <td class="hide-mobile">{{ deliverable.description|truncatewords:15|default:"—" }}</td>
+                <td class="hide-mobile">{{ deliverable.session_count }}</td>
+                <td class="hide-mobile">{{ deliverable.total_duration_seconds|format_duration }}</td>
+                <td class="hide-mobile">{{ deliverable.total_cost|format_currency }}</td>
+                <td class="actions">
+                    <a href="{% url 'deliverables:deliverable_detail' deliverable.pk %}" class="btn btn-small">View</a>
+                    <a href="{% url 'deliverables:deliverable_edit' deliverable.pk %}" class="btn btn-small btn-secondary">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p>No deliverables yet. <a href="{% url 'deliverables:deliverable_add' project.pk %}">Add your first deliverable</a>.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+
