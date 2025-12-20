@@ -158,6 +158,14 @@
 <!-- Summary Cards -->
 <div class="stats-grid">
     <div class="stat-card">
+        <div class="stat-card-label">This Week's Hours</div>
+        <div class="stat-card-value">{{ this_week_hours|floatformat:1 }}h</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">This Week's Cost</div>
+        <div class="stat-card-value">{{ this_week_cost|format_currency }}</div>
+    </div>
+    <div class="stat-card">
         <div class="stat-card-label">Total Time Tracked</div>
         <div class="stat-card-value">{{ total_time_seconds|format_duration }}</div>
     </div>
@@ -189,19 +197,11 @@
         <div class="stat-card-label">Total Deliverables</div>
         <div class="stat-card-value">{{ total_deliverables }}</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-card-label">This Week's Hours</div>
-        <div class="stat-card-value">{{ this_week_hours|floatformat:1 }}h</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-card-label">This Week's Cost</div>
-        <div class="stat-card-value">{{ this_week_cost|format_currency }}</div>
-    </div>
-    <div class="stat-card">
+    <!-- <div class="stat-card">
         <div class="stat-card-label">Most Active Day</div>
         <div class="stat-card-value" style="font-size: 1.5rem;">{{ most_active_day_name }}</div>
         <div style="font-size: 0.875rem; color: #8e8e93; margin-top: 0.25rem;">{{ most_active_day_hours|floatformat:1 }}h</div>
-    </div>
+    </div> -->
 </div>
 
 <!-- Charts Grid -->
