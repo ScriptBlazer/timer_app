@@ -12,7 +12,17 @@
 </head>
 <body>
     {% if user.is_authenticated %}
-    <!-- Sidebar Navigation -->
+    <!-- Mobile Top Bar -->
+    <div class="mobile-top-bar">
+        <a href="{% url 'home' %}" class="mobile-logo">
+            <img src="{% static 'images/mot logo.svg' %}" alt="Timer Tracker" class="mobile-logo-img">
+        </a>
+        <a href="{% url 'logout' %}" class="mobile-logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+        </a>
+    </div>
+
+    <!-- Sidebar Navigation (Desktop) -->
     <aside class="sidebar">
         <div class="sidebar-brand">
             <a href="{% url 'home' %}" class="brand-name">
@@ -52,9 +62,6 @@
     </aside>
 
     <!-- Main Content Area -->
-    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
-        <span class="sidebar-toggle-bar"></span>
-    </button>
     <div class="main-content">
         {% block breadcrumb %}{% endblock %}
         
@@ -73,6 +80,29 @@
             {% block content %}{% endblock %}
         </div>
     </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="{% url 'customer_list' %}" class="mobile-nav-item">
+            <i class="fas fa-users"></i>
+            <span>Customers</span>
+        </a>
+        <a href="{% url 'project_list' %}" class="mobile-nav-item">
+            <i class="far fa-folder"></i>
+            <span>Projects</span>
+        </a>
+        <a href="{% url 'running_timers' %}" class="mobile-nav-item">
+            <i class="far fa-play-circle"></i>
+            <span>Timers</span>
+        </a>
+        {% load timer_tags %}
+        {% if user|is_workspace_owner %}
+        <a href="{% url 'admin_panel' %}" class="mobile-nav-item">
+            <i class="fas fa-cog"></i>
+            <span>Admin</span>
+        </a>
+        {% endif %}
+    </nav>
     {% endif %}
 
     <script>
@@ -93,7 +123,7 @@
         }
         const csrftoken = getCookie('csrftoken');
 
-        // Auto-hide messages after 4 seconds and init sidebar toggle
+        // Auto-hide messages after 4 seconds and highlight active nav item
         document.addEventListener('DOMContentLoaded', function() {
             const messages = document.querySelectorAll('.message');
             messages.forEach(message => {
@@ -110,13 +140,16 @@
                 }, 4000);
             });
 
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const body = document.body;
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function() {
-                    body.classList.toggle('sidebar-open');
-                });
-            }
+            // Highlight active mobile nav item
+            const currentPath = window.location.pathname;
+            const navItems = document.querySelectorAll('.mobile-nav-item');
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                // Match exact path or if current path starts with the href (for sub-pages)
+                if (currentPath === href || (href !== '/' && currentPath.startsWith(href))) {
+                    item.classList.add('active');
+                }
+            });
         });
     </script>
 
