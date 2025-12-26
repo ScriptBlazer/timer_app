@@ -25,6 +25,16 @@ def deliverable_list(request, project_pk):
     
     deliverables = project.deliverables.all()
     
+    # If AJAX request, return JSON
+    if request.headers.get('Accept') == 'application/json' or request.GET.get('format') == 'json':
+        return JsonResponse({
+            'success': True,
+            'deliverables': [
+                {'id': d.pk, 'name': d.name}
+                for d in deliverables
+            ]
+        })
+    
     return render(request, 'deliverables/deliverable_list.html', {
         'project': project,
         'deliverables': deliverables

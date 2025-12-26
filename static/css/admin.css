@@ -23,6 +23,35 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Scrollable table: shows 3 rows max, then scrolls (desktop only) */
+@media (min-width: 769px) {
+    .timer-table.scrollable {
+        position: relative;
+        /* header (~4rem) + 3 rows (~5rem each to ensure full visibility with padding + content) */
+        /* This ensures at least 3 full rows are always visible */
+        max-height: calc(4rem + (3 * 5rem)); 
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .timer-table.scrollable thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #f8f9fa;
+    }
+
+    .timer-table.scrollable thead::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #dee2e6;
+    }
+}
+
 .timer-table table {
     width: 100%;
     border-collapse: collapse;
@@ -175,6 +204,15 @@
         overflow: hidden;
     }
 
+    /* Hide rows after the 3rd on mobile (when not expanded) */
+    .timer-table.mobile-limit tbody tr:nth-child(n+4) {
+        display: none;
+    }
+
+    .timer-table.mobile-limit.expanded tbody tr {
+        display: block;
+    }
+
     .timer-table td {
         border-bottom: 1px solid #eee;
         padding: 0.75rem 1rem;
@@ -206,25 +244,31 @@
         flex-wrap: wrap;
     }
 
-    /* Team Member Form - Stack on mobile */
-    .team-member-form {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .team-member-form .form-group {
-        min-width: 100%;
+    /* Show more button styling */
+    .show-more-btn {
+        display: block;
         width: 100%;
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        color: #495057;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
     }
 
-    .team-form-submit {
-        width: 100%;
+    .show-more-btn:hover {
+        background: #e9ecef;
     }
+}
 
-    /* Account Info Grid - Stack on mobile */
-    .account-info-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+/* Hide show more button on desktop */
+@media (min-width: 769px) {
+    .show-more-btn {
+        display: none !important;
     }
 }
 

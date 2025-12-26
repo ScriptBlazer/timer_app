@@ -489,6 +489,7 @@ def timer_stop(request, pk):
     return JsonResponse({
         'success': True,
         'session_id': session.pk,
+        'project_id': project_timer.project.pk,
         'end_time': session.end_time.isoformat()
     })
 

@@ -243,7 +243,7 @@
     </p>
     
     {% if customer_stats %}
-    <div class="timer-table">
+    <div class="timer-table{% if customer_stats|length > 3 %} scrollable mobile-limit{% endif %}" id="customer-table">
         <table>
             <thead>
                 <tr>
@@ -283,6 +283,9 @@
             </tbody>
         </table>
     </div>
+    {% if customer_stats|length > 3 %}
+    <button class="show-more-btn" data-target="customer-table">Show more</button>
+    {% endif %}
     {% else %}
     <div class="empty-state">
         <div class="empty-state-icon"><i class="fas fa-users"></i></div>
@@ -304,7 +307,7 @@
     </p>
     
     {% if project_stats %}
-    <div class="timer-table">
+    <div class="timer-table{% if project_stats|length > 3 %} scrollable mobile-limit{% endif %}" id="project-table">
         <table>
             <thead>
                 <tr>
@@ -357,6 +360,9 @@
             </tbody>
         </table>
     </div>
+    {% if project_stats|length > 3 %}
+    <button class="show-more-btn" data-target="project-table">Show more</button>
+    {% endif %}
     {% else %}
     <div class="empty-state">
         <div class="empty-state-icon"><i class="far fa-folder"></i></div>
@@ -387,5 +393,25 @@
         </ul>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Show more/less functionality for mobile
+    document.querySelectorAll('.show-more-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const table = document.getElementById(targetId);
+            
+            if (table.classList.contains('expanded')) {
+                table.classList.remove('expanded');
+                this.textContent = 'Show more';
+            } else {
+                table.classList.add('expanded');
+                this.textContent = 'Show less';
+            }
+        });
+    });
+</script>
 {% endblock %}
 
