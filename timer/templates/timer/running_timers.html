@@ -61,7 +61,7 @@
             </div>
             
             <div class="timer-actions">
-                <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ session.project_timer.pk }}">
+                <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ session.project_timer.pk }}" data-project-id="{{ session.project_timer.project.pk }}">
                     <i class="far fa-pause-circle"></i> Stop Timer
                 </button>
                 <div class="timer-footer-actions">
@@ -82,6 +82,29 @@
 <div id="noteModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">Add Session Note</div>
+        <div id="modalErrorMessage" style="display: none; margin: 1rem; padding: 0.75rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c33; font-size: 0.875rem;"></div>
+        <div class="form-group">
+            <label for="sessionDeliverable" class="form-label">Deliverable (optional):</label>
+            <select id="sessionDeliverable" class="form-input">
+                <option value="">No deliverable</option>
+                <option value="__add_new__">➕ Add new deliverable...</option>
+            </select>
+            <div id="addDeliverableInline" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
+                <div id="deliverableError" style="display: none; margin-bottom: 0.75rem; padding: 0.5rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c33; font-size: 0.875rem;"></div>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label for="newDeliverableName" class="form-label" style="font-size: 0.875rem;">Deliverable Name:</label>
+                    <input type="text" id="newDeliverableName" class="form-input" placeholder="e.g., Video 1, Kitchen wall, Landing page">
+                </div>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label for="newDeliverableDescription" class="form-label" style="font-size: 0.875rem;">Description (optional):</label>
+                    <textarea id="newDeliverableDescription" class="form-input" rows="2" placeholder="Optional description..."></textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" id="createDeliverableBtn" class="btn" style="flex: 1;">Create & Select</button>
+                    <button type="button" id="cancelAddDeliverableBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
         <div class="form-group">
             <label for="sessionNote" class="form-label">What did you work on?</label>
             <textarea id="sessionNote" class="form-textarea" rows="4" placeholder="Describe what you worked on..."></textarea>
@@ -97,6 +120,7 @@
 {% block extra_js %}
 <script>
     let currentSessionId = null;
+    let currentProjectId = null;
 
     // Update live timers
     function updateLiveTimers() {
@@ -116,6 +140,37 @@
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
+    // Load deliverables for a project
+    function loadDeliverables(projectId) {
+        const select = document.getElementById('sessionDeliverable');
+        // Clear existing options except "No deliverable" and "Add new"
+        while (select.children.length > 2) {
+            select.removeChild(select.children[1]);
+        }
+        
+        fetch(`/projects/${projectId}/deliverables/?format=json`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add deliverables before "Add new" option
+                const addNewOption = select.lastElementChild;
+                data.deliverables.forEach(d => {
+                    const option = document.createElement('option');
+                    option.value = d.id;
+                    option.textContent = d.name;
+                    select.insertBefore(option, addNewOption);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading deliverables:', error);
+        });
+    }
+
     // Stop timer
     document.querySelectorAll('.stop-timer').forEach(button => {
         button.addEventListener('click', function() {
@@ -132,6 +187,23 @@
             .then(data => {
                 if (data.success) {
                     currentSessionId = data.session_id;
+                    currentProjectId = data.project_id;
+                    
+                    // Clear any previous errors when opening modal
+                    document.getElementById('modalErrorMessage').style.display = 'none';
+                    document.getElementById('modalErrorMessage').textContent = '';
+                    document.getElementById('deliverableError').style.display = 'none';
+                    document.getElementById('deliverableError').textContent = '';
+                    document.getElementById('sessionNote').value = '';
+                    document.getElementById('sessionDeliverable').value = '';
+                    document.getElementById('addDeliverableInline').style.display = 'none';
+                    const saveBtn = document.getElementById('saveNote');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save';
+                    
+                    // Load deliverables for this project
+                    loadDeliverables(currentProjectId);
+                    
                     document.getElementById('noteModal').classList.add('active');
                 } else {
                     alert('Error: ' + data.error);
@@ -144,9 +216,110 @@
         });
     });
 
+    // Handle deliverable dropdown change in modal
+    document.getElementById('sessionDeliverable').addEventListener('change', function() {
+        const addDeliverableInline = document.getElementById('addDeliverableInline');
+        const errorDiv = document.getElementById('deliverableError');
+        if (this.value === '__add_new__') {
+            addDeliverableInline.style.display = 'block';
+            this.value = ''; // Reset to empty so it doesn't interfere
+            // Clear any previous errors
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        } else {
+            addDeliverableInline.style.display = 'none';
+            // Clear errors when hiding the form
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        }
+    });
+
+    // Cancel add deliverable in modal
+    document.getElementById('cancelAddDeliverableBtn').addEventListener('click', function() {
+        document.getElementById('addDeliverableInline').style.display = 'none';
+        document.getElementById('sessionDeliverable').value = '';
+        document.getElementById('newDeliverableName').value = '';
+        document.getElementById('newDeliverableDescription').value = '';
+        // Clear errors
+        const errorDiv = document.getElementById('deliverableError');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    });
+
+    // Create deliverable inline in modal
+    document.getElementById('createDeliverableBtn').addEventListener('click', function() {
+        const name = document.getElementById('newDeliverableName').value.trim();
+        const description = document.getElementById('newDeliverableDescription').value.trim();
+        const errorDiv = document.getElementById('deliverableError');
+        
+        // Hide previous errors
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        
+        if (!name) {
+            errorDiv.textContent = 'Please enter a deliverable name';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        fetch(`/projects/${currentProjectId}/deliverables/add-ajax/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: name, description: description })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add to dropdown
+                const select = document.getElementById('sessionDeliverable');
+                const option = document.createElement('option');
+                option.value = data.deliverable.id;
+                option.textContent = data.deliverable.name;
+                select.insertBefore(option, select.lastElementChild); // Insert before "Add new" option
+                select.value = data.deliverable.id;
+                
+                // Hide inline form and clear errors
+                document.getElementById('addDeliverableInline').style.display = 'none';
+                document.getElementById('newDeliverableName').value = '';
+                document.getElementById('newDeliverableDescription').value = '';
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = 'Error: ' + (data.error || 'Failed to create deliverable');
+                errorDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorDiv.textContent = 'An error occurred creating the deliverable';
+            errorDiv.style.display = 'block';
+        });
+    });
+
     // Save note
     document.getElementById('saveNote').addEventListener('click', function() {
         const note = document.getElementById('sessionNote').value;
+        const deliverableId = document.getElementById('sessionDeliverable').value;
+        const errorDiv = document.getElementById('modalErrorMessage');
+        
+        // Hide previous errors
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        
+        // Don't save if "Add new" is selected
+        if (deliverableId === '__add_new__') {
+            errorDiv.textContent = 'Please create the deliverable first or select an existing one';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        // Disable save button to prevent double submission
+        const saveBtn = document.getElementById('saveNote');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
         
         fetch(`/sessions/${currentSessionId}/note/`, {
             method: 'POST',
@@ -154,26 +327,49 @@
                 'X-CSRFToken': csrftoken,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ note: note })
+            body: JSON.stringify({ 
+                note: note,
+                deliverable: deliverableId || null
+            })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 location.reload();
             } else {
-                alert('Error: ' + data.error);
+                // Show error and re-enable button
+                errorDiv.textContent = 'Error: ' + (data.error || 'Failed to save session');
+                errorDiv.style.display = 'block';
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred saving the note');
+            errorDiv.textContent = 'An error occurred saving the note';
+            errorDiv.style.display = 'block';
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
         });
     });
 
     // Cancel note
     document.getElementById('cancelNote').addEventListener('click', function() {
+        // Clear all form data and errors
         document.getElementById('noteModal').classList.remove('active');
         document.getElementById('sessionNote').value = '';
+        document.getElementById('sessionDeliverable').value = '';
+        document.getElementById('addDeliverableInline').style.display = 'none';
+        document.getElementById('newDeliverableName').value = '';
+        document.getElementById('newDeliverableDescription').value = '';
+        document.getElementById('modalErrorMessage').style.display = 'none';
+        document.getElementById('modalErrorMessage').textContent = '';
+        document.getElementById('deliverableError').style.display = 'none';
+        document.getElementById('deliverableError').textContent = '';
+        const saveBtn = document.getElementById('saveNote');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+        // Reload to refresh the page state
         location.reload();
     });
 
