@@ -1,5 +1,5 @@
 {% extends "timer/base.html" %}
-{% load timer_filters %}
+{% load timer_filters common_filters %}
 
 {% block title %}Customers - Timer Tracker{% endblock %}
 
@@ -42,7 +42,7 @@
         <tbody>
             {% for customer in customers %}
             <tr data-original-index="{{ forloop.counter }}">
-                <td><a href="{% url 'customer_detail' customer.pk %}">{{ customer.name }}</a></td>
+                <td><a href="{% url 'customer_detail' customer.pk %}" title="{{ customer.name }}">{{ customer.name|truncate_chars:20 }}</a></td>
                 <td>{{ customer.projects.count }}</td>
                 <td class="hide-mobile">{{ customer.total_duration_seconds|format_duration }}</td>
                 <td class="hide-mobile">{{ customer.total_cost|format_currency }}</td>

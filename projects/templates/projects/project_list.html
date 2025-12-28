@@ -1,5 +1,5 @@
 {% extends "timer/base.html" %}
-{% load timer_filters %}
+{% load timer_filters common_filters %}
 
 {% block title %}All Projects - Timer Tracker{% endblock %}
 
@@ -50,8 +50,8 @@
         <tbody>
             {% for project in projects %}
             <tr class="project-row" data-status="{{ project.status }}" data-name="{{ project.name|lower }}" data-customer="{{ project.customer.name|lower }}" data-original-index="{{ forloop.counter }}">
-                <td><a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a></td>
-                <td><a href="{% url 'customer_detail' project.customer.pk %}">{{ project.customer.name }}</a></td>
+                <td><a href="{% url 'project_detail' project.pk %}" title="{{ project.name }}">{{ project.name|truncate_chars:20 }}</a></td>
+                <td><a href="{% url 'customer_detail' project.customer.pk %}" title="{{ project.customer.name }}">{{ project.customer.name|truncate_chars:20 }}</a></td>
                 <td class="hide-mobile">
                     <span class="status-badge status-{{ project.status }}">
                         {{ project.get_status_display }}

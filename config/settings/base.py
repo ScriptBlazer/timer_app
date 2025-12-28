@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'projects',
     'deliverables',
     'workspace_admin',
+    'common',
 ]
 
 MIDDLEWARE = [

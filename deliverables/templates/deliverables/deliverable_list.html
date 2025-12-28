@@ -1,5 +1,5 @@
 {% extends "timer/base.html" %}
-{% load timer_filters %}
+{% load timer_filters common_filters %}
 
 {% block title %}Deliverables - {{ project.name }} - Timer Tracker{% endblock %}
 
@@ -33,7 +33,7 @@
             <tr>
                 <th>Name</th>
                 <th class="hide-mobile">Description</th>
-                <th class="hide-mobile">Sessions</th>
+                <th>Sessions</th>
                 <th class="hide-mobile">Total Time</th>
                 <th class="hide-mobile">Total Cost</th>
                 <th>Actions</th>
@@ -42,9 +42,9 @@
         <tbody>
             {% for deliverable in deliverables %}
             <tr>
-                <td><a href="{% url 'deliverables:deliverable_detail' deliverable.pk %}">{{ deliverable.name }}</a></td>
+                <td><a href="{% url 'deliverables:deliverable_detail' deliverable.pk %}" title="{{ deliverable.name }}">{{ deliverable.name|truncate_chars:20 }}</a></td>
                 <td class="hide-mobile">{{ deliverable.description|truncatewords:15|default:"—" }}</td>
-                <td class="hide-mobile">{{ deliverable.session_count }}</td>
+                <td>{{ deliverable.session_count }}</td>
                 <td class="hide-mobile">{{ deliverable.total_duration_seconds|format_duration }}</td>
                 <td class="hide-mobile">{{ deliverable.total_cost|format_currency }}</td>
                 <td class="actions">
