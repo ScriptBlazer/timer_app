@@ -3,6 +3,24 @@
 
 {% block title %}{{ deliverable.name }} - Timer Tracker{% endblock %}
 
+{% block extra_css %}
+<style>
+    .timer-color-indicator {
+        display: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    
+    @media (min-width: 769px) {
+        .timer-color-indicator {
+            display: inline-block;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block breadcrumb %}
 <div class="breadcrumb">
     <a href="{% url 'home' %}">Home</a>
@@ -58,7 +76,12 @@
         <tbody>
             {% for session in sessions %}
             <tr>
-                <td>{{ session.project_timer.timer.task_name }}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="timer-color-indicator" style="background-color: {{ session.project_timer.timer.header_color|default:'#3498db' }};"></span>
+                        {{ session.project_timer.timer.task_name }}
+                    </div>
+                </td>
                 <td class="hide-mobile">
                     {% if session.note %}
                         {{ session.note }}
