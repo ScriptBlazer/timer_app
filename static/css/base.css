@@ -954,7 +954,7 @@ a:hover {
     body {
         flex-direction: column;
         padding-bottom: 75px; /* Space for bottom nav */
-        padding-top: 60px; /* Space for top bar */
+        padding-top: 75px; 
     }
 
     /* Hide sidebar on mobile */
@@ -971,7 +971,7 @@ a:hover {
         top: 0;
         left: 0;
         right: 0;
-        height: 60px;
+        height: 75px;
         background: #2c3e50;
         padding: 0 1rem;
         z-index: 1000;
@@ -987,8 +987,8 @@ a:hover {
     }
 
     .mobile-logo-img {
-        max-height: 40px;
-        height: 40px;
+        max-height: 45px;
+        height: 45px;
         width: auto;
         display: block;
         object-fit: contain;
@@ -1159,6 +1159,7 @@ a:hover {
 
     .page-header > .actions .btn {
         width: 100%;
+        text-align: left;
     }
 }
 

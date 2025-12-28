@@ -49,10 +49,9 @@
         <thead>
             <tr>
                 <th>Timer</th>
-                <th class="hide-mobile">Start Time</th>
-                <th class="hide-mobile">End Time</th>
-                <th>Duration</th>
-                <th class="hide-mobile">Cost</th>
+                <th class="hide-mobile">Session Notes</th>
+                <th class="hide-mobile">Duration</th>
+                <th>Cost</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -60,10 +59,15 @@
             {% for session in sessions %}
             <tr>
                 <td>{{ session.project_timer.timer.task_name }}</td>
-                <td class="hide-mobile">{{ session.start_time|date:"M d, Y H:i" }}</td>
-                <td class="hide-mobile">{{ session.end_time|date:"M d, Y H:i" }}</td>
-                <td>{{ session.duration_seconds|format_duration }}</td>
-                <td class="hide-mobile">{{ session.cost|format_currency }}</td>
+                <td class="hide-mobile">
+                    {% if session.note %}
+                        {{ session.note }}
+                    {% else %}
+                        <em style="color: #999;">No note</em>
+                    {% endif %}
+                </td>
+                <td class="hide-mobile">{{ session.duration_seconds|format_duration }}</td>
+                <td>{{ session.cost|format_currency }}</td>
                 <td class="actions">
                     <a href="{% url 'project_detail' session.project_timer.project.pk %}" class="btn btn-small">View Project</a>
                 </td>
