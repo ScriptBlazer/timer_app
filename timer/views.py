@@ -466,6 +466,88 @@ def timer_start(request, pk):
 
 @login_required
 @require_POST
+def timer_pause(request, pk):
+    """Pause a running timer (AJAX endpoint)"""
+    project_timer = get_object_or_404(ProjectTimer, pk=pk)
+    
+    # Check permission
+    if not check_workspace_permission(request, project_timer):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    # Check if timer is running and not already paused
+    if not project_timer.is_running():
+        return JsonResponse({
+            'success': False,
+            'error': 'Timer is not running'
+        }, status=400)
+    
+    session = project_timer.active_session()
+    if session.is_paused():
+        return JsonResponse({
+            'success': False,
+            'error': 'Timer is already paused'
+        }, status=400)
+    
+    # Set pause start time
+    session.pause_start_time = timezone.now()
+    session.save()
+    
+    return JsonResponse({
+        'success': True,
+        'session_id': session.pk,
+        'pause_start_time': session.pause_start_time.isoformat()
+    })
+
+
+@login_required
+@require_POST
+def timer_resume(request, pk):
+    """Resume a paused timer (AJAX endpoint)"""
+    from .models import TimerPause
+    
+    project_timer = get_object_or_404(ProjectTimer, pk=pk)
+    
+    # Check permission
+    if not check_workspace_permission(request, project_timer):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    # Check if timer is paused
+    if not project_timer.is_paused():
+        return JsonResponse({
+            'success': False,
+            'error': 'Timer is not paused'
+        }, status=400)
+    
+    session = project_timer.active_session()
+    if not session.is_paused():
+        return JsonResponse({
+            'success': False,
+            'error': 'Session is not paused'
+        }, status=400)
+    
+    # Create pause record (completed pause)
+    pause_start = session.pause_start_time
+    pause_end = timezone.now()
+    
+    pause = TimerPause.objects.create(
+        session=session,
+        pause_start_time=pause_start,
+        pause_end_time=pause_end
+    )
+    
+    # Clear pause state
+    session.pause_start_time = None
+    session.save()
+    
+    return JsonResponse({
+        'success': True,
+        'session_id': session.pk,
+        'pause_id': pause.pk
+    })
+
+
+@login_required
+@require_POST
 def timer_stop(request, pk):
     """Stop a timer (AJAX endpoint)"""
     project_timer = get_object_or_404(ProjectTimer, pk=pk)
@@ -481,9 +563,21 @@ def timer_stop(request, pk):
             'error': 'Timer is not running'
         }, status=400)
     
-    # Get active session and stop it
+    # Get active session
     session = project_timer.active_session()
-    session.end_time = timezone.now()
+    
+    # If paused, set end_time to pause start time (no pause record created)
+    if session.is_paused():
+        # Delete any incomplete pause records (shouldn't exist, but cleanup just in case)
+        from .models import TimerPause
+        TimerPause.objects.filter(session=session).delete()
+        
+        session.end_time = session.pause_start_time
+        session.pause_start_time = None  # Clear pause state
+    else:
+        # Normal stop: set end_time to now
+        session.end_time = timezone.now()
+    
     session.save()
     
     return JsonResponse({
@@ -552,7 +646,10 @@ def session_update_note(request, pk):
 
 @login_required
 def session_edit(request, pk):
-    """Edit a session's times and note"""
+    """Edit a session's times, note, and pauses"""
+    from .forms import SessionEditForm, PauseFormSet
+    from .models import TimerPause
+    
     session = get_object_or_404(TimerSession, pk=pk)
     
     # Check permission
@@ -560,17 +657,46 @@ def session_edit(request, pk):
         messages.error(request, 'You do not have permission to edit this session.')
         return redirect('customer_list')
     
+    # Clean up any invalid pauses (pauses that end exactly when session ends - indicates stopped while paused)
+    if session.end_time:
+        invalid_pauses = TimerPause.objects.filter(
+            session=session,
+            pause_end_time=session.end_time
+        )
+        if invalid_pauses.exists():
+            invalid_pauses.delete()
+    
     if request.method == 'POST':
         form = SessionEditForm(request.POST, instance=session)
-        if form.is_valid():
+        pause_formset = PauseFormSet(request.POST, instance=session)
+        
+        if form.is_valid() and pause_formset.is_valid():
+            # Validate that pauses don't end at session end_time (stopped while paused)
+            if session.end_time:
+                for pause_form in pause_formset:
+                    if pause_form.instance.pk and pause_form.instance.pause_end_time == session.end_time:
+                        messages.error(request, 'Pauses cannot end exactly when the session ended (timer was stopped while paused).')
+                        return render(request, 'timer/session_edit.html', {
+                            'form': form,
+                            'pause_formset': pause_formset,
+                            'session': session
+                        })
+            
             form.save()
+            pause_formset.save()
             messages.success(request, 'Session updated successfully!')
             return redirect('project_detail', pk=session.project_timer.project.pk)
     else:
         form = SessionEditForm(instance=session)
+        # Only show pauses that don't end exactly when session ends (exclude stopped-while-paused pauses)
+        pause_queryset = TimerPause.objects.filter(session=session)
+        if session.end_time:
+            pause_queryset = pause_queryset.exclude(pause_end_time=session.end_time)
+        pause_formset = PauseFormSet(instance=session, queryset=pause_queryset)
     
     return render(request, 'timer/session_edit.html', {
         'form': form,
+        'pause_formset': pause_formset,
         'session': session
     })
 
