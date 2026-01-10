@@ -1,7 +1,8 @@
 from django import forms
+from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Timer, ProjectTimer, TimerSession
+from .models import Timer, ProjectTimer, TimerSession, TimerPause
 
 
 class RegisterForm(UserCreationForm):
@@ -59,4 +60,34 @@ class SessionEditForm(forms.ModelForm):
             self.fields['deliverable'].queryset = Deliverable.objects.filter(project=project).order_by('name')
             self.fields['deliverable'].required = False
             self.fields['deliverable'].empty_label = 'No deliverable'
+
+
+class PauseForm(forms.ModelForm):
+    class Meta:
+        model = TimerPause
+        fields = ['pause_start_time', 'pause_end_time']
+        widgets = {
+            'pause_start_time': forms.DateTimeInput(attrs={'class': 'form-input', 'type': 'datetime-local'}),
+            'pause_end_time': forms.DateTimeInput(attrs={'class': 'form-input', 'type': 'datetime-local'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Format datetime fields for HTML5 datetime-local input
+        if self.instance and self.instance.pk:
+            if self.instance.pause_start_time:
+                self.initial['pause_start_time'] = self.instance.pause_start_time.strftime('%Y-%m-%dT%H:%M')
+            if self.instance.pause_end_time:
+                self.initial['pause_end_time'] = self.instance.pause_end_time.strftime('%Y-%m-%dT%H:%M')
+
+
+# Inline formset for pauses
+PauseFormSet = inlineformset_factory(
+    TimerSession,
+    TimerPause,
+    form=PauseForm,
+    extra=0,  # No extra forms by default - user clicks "Add Pause" to add one
+    can_delete=True,
+    fields=['pause_start_time', 'pause_end_time']
+)
 

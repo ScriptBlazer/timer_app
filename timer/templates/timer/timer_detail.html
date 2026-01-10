@@ -75,7 +75,7 @@
                     <div class="session-note" data-session-id="{{ session.pk }}">
                         <span class="note-display">
                             {% if session.note %}
-                                {{ session.note }}
+                                {{ session.note|linebreaksbr }}
                             {% else %}
                                 <em style="color: #999;">No note</em>
                             {% endif %}

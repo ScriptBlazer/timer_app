@@ -17,9 +17,17 @@
         <a href="{% url 'home' %}" class="mobile-logo">
             <img src="{% static 'images/mot logo.svg' %}" alt="Timer Tracker" class="mobile-logo-img">
         </a>
-        <a href="{% url 'logout' %}" class="mobile-logout-btn">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            {% if running_timer_count > 0 %}
+            <a href="{% url 'running_timers' %}" class="running-timer-badge mobile-badge">
+                <i class="far fa-play-circle"></i>
+                <span class="badge-count">{{ running_timer_count }}</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'logout' %}" class="mobile-logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
     </div>
 
     <!-- Sidebar Navigation (Desktop) -->
@@ -42,6 +50,9 @@
                 <a href="{% url 'running_timers' %}" class="sidebar-link">
                     <span class="sidebar-link-icon"><i class="far fa-play-circle"></i></span>
                     <span>Running Timers</span>
+                    {% if running_timer_count > 0 %}
+                    <span class="running-timer-badge desktop-badge">{{ running_timer_count }}</span>
+                    {% endif %}
                 </a>
                 <a href="{% url 'analytics' %}" class="sidebar-link hide-mobile-link">
                     <span class="sidebar-link-icon"><i class="far fa-chart-bar"></i></span>

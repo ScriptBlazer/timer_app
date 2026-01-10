@@ -63,8 +63,8 @@
     <div class="timer-card" data-timer-id="{{ project_timer.pk }}">
         <div class="timer-card-header" style="background-color: {{ project_timer.timer.header_color|default:'#3498db' }};">
             <h3 class="timer-task-name">{{ project_timer.timer.task_name }}</h3>
-            <span class="timer-status {% if project_timer.is_running %}status-running{% else %}status-stopped{% endif %}">
-                {% if project_timer.is_running %}RUNNING{% else %}STOPPED{% endif %}
+            <span class="timer-status {% if project_timer.is_running %}status-running{% elif project_timer.is_paused %}status-paused{% else %}status-stopped{% endif %}">
+                {% if project_timer.is_paused %}PAUSED{% elif project_timer.is_running %}RUNNING{% else %}STOPPED{% endif %}
             </span>
         </div>
         
@@ -84,21 +84,45 @@
                 </div>
             </div>
             
-            {% if project_timer.is_running %}
+            {% if project_timer.is_running or project_timer.is_paused %}
             <div class="timer-current-session">
                 <span class="timer-label">Current Session:</span>
-                <span class="live-timer" data-timer-id="{{ project_timer.pk }}" data-start-time="{{ project_timer.active_session.start_time.isoformat }}">
+                {% if project_timer.is_paused %}
+                <span class="timer-paused-display" data-timer-id="{{ project_timer.pk }}" data-start-time="{{ project_timer.active_session.start_time.isoformat }}" data-pause-time="{{ project_timer.active_session.pause_start_time.isoformat }}">
+                    {{ project_timer.active_session.duration_seconds|format_duration }}
+                </span>
+                <span style="color: #e67e22; font-size: 0.875rem; margin-left: 0.5rem;">(Paused)</span>
+                {% else %}
+                <span class="live-timer" 
+                      data-timer-id="{{ project_timer.pk }}" 
+                      data-start-time="{{ project_timer.active_session.start_time.isoformat }}"
+                      data-pauses="{% for pause in project_timer.active_session.pauses.all %}{{ pause.pause_start_time.isoformat }},{{ pause.pause_end_time.isoformat }};{% endfor %}">
                     00:00:00
                 </span>
+                {% endif %}
             </div>
             {% endif %}
             
             <div class="timer-actions">
                 {% if project.status == 'active' %}
-                    {% if project_timer.is_running %}
-                    <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ project_timer.pk }}">
-                        <i class="far fa-pause-circle"></i> Stop Timer
-                    </button>
+                    {% if project_timer.is_paused %}
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-success btn-timer-action resume-timer" data-timer-id="{{ project_timer.pk }}">
+                            <i class="far fa-play-circle"></i> Resume
+                        </button>
+                        <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ project_timer.pk }}">
+                            <i class="far fa-stop-circle"></i> Stop
+                        </button>
+                    </div>
+                    {% elif project_timer.is_running %}
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-warning btn-timer-action pause-timer" data-timer-id="{{ project_timer.pk }}">
+                            <i class="far fa-pause-circle"></i> Pause
+                        </button>
+                        <button class="btn btn-danger btn-timer-action stop-timer" data-timer-id="{{ project_timer.pk }}">
+                            <i class="far fa-stop-circle"></i> Stop
+                        </button>
+                    </div>
                     {% else %}
                     <button class="btn btn-success btn-timer-action start-timer" data-timer-id="{{ project_timer.pk }}">
                         <i class="far fa-play-circle"></i> Start Timer
@@ -144,6 +168,19 @@
                             👤 {{ session.created_by.username }}
                         </div>
                         {% endif %}
+                        {% if session.pauses.all %}
+                        <div class="session-pauses" style="margin-top: 0.75rem;">
+                            <strong style="font-size: 0.875rem; color: #666;">Pauses:</strong>
+                            <div style="margin-top: 0.5rem; padding-left: 0.5rem; border-left: 2px solid #e67e22;">
+                                {% for pause in session.pauses.all %}
+                                <div style="font-size: 0.875rem; color: #666; margin-bottom: 0.25rem;">
+                                    {{ pause.pause_start_time|date:"M d, Y H:i" }} - {{ pause.pause_end_time|date:"M d, Y H:i" }}
+                                    <span style="color: #999;">({{ pause.duration_seconds|format_duration }})</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="session-stats">
                         <span class="session-duration">{{ session.duration_seconds|format_duration }}</span>
@@ -186,8 +223,8 @@
                         <div class="session-note-editable" 
                              contenteditable="true" 
                              data-session-id="{{ session.pk }}"
-                             data-original-note="{{ session.note }}"
-                             placeholder="Click to add a note...">{{ session.note }}</div>
+                             data-original-note="{{ session.note|default:'' }}"
+                             placeholder="Click to add a note...">{% if session.note %}{{ session.note|linebreaksbr|safe }}{% endif %}</div>
                         <div class="session-note-hint">Click to edit • Changes save automatically</div>
                     </div>
                     <div class="session-actions">
@@ -281,7 +318,28 @@
         timers.forEach(timer => {
             const startTime = new Date(timer.dataset.startTime);
             const now = new Date();
-            const seconds = Math.floor((now - startTime) / 1000);
+            let seconds = Math.floor((now - startTime) / 1000);
+            
+            // Subtract pause periods
+            const pausesData = timer.dataset.pauses;
+            if (pausesData) {
+                const pauses = pausesData.split(';').filter(p => p.trim() !== '');
+                pauses.forEach(pauseStr => {
+                    if (pauseStr.includes(',')) {
+                        const [pauseStartStr, pauseEndStr] = pauseStr.split(',');
+                        const pauseStart = new Date(pauseStartStr);
+                        const pauseEnd = new Date(pauseEndStr);
+                        
+                        // Only subtract if the pause period overlaps with the current time period
+                        // Pause duration is the time between pause start and pause end
+                        const pauseDuration = Math.floor((pauseEnd - pauseStart) / 1000);
+                        seconds -= pauseDuration;
+                    }
+                });
+            }
+            
+            // Ensure non-negative
+            seconds = Math.max(0, seconds);
             timer.textContent = formatDuration(seconds);
         });
     }
@@ -333,6 +391,60 @@
             .catch(error => {
                 console.error('Error:', error);
                 alert('An error occurred starting the timer');
+            });
+        });
+    });
+
+    // Pause timer
+    document.querySelectorAll('.pause-timer').forEach(button => {
+        button.addEventListener('click', function() {
+            const timerId = this.dataset.timerId;
+            
+            fetch(`/project-timers/${timerId}/pause/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred pausing the timer');
+            });
+        });
+    });
+
+    // Resume timer
+    document.querySelectorAll('.resume-timer').forEach(button => {
+        button.addEventListener('click', function() {
+            const timerId = this.dataset.timerId;
+            
+            fetch(`/project-timers/${timerId}/resume/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred resuming the timer');
             });
         });
     });
@@ -458,6 +570,22 @@
             errorDiv.style.display = 'block';
         });
     });
+
+    // Handle Enter key in note textarea: Enter = submit, Shift+Enter = new line
+    const sessionNoteTextarea = document.getElementById('sessionNote');
+    if (sessionNoteTextarea) {
+        sessionNoteTextarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                // Trigger save button click
+                const saveBtn = document.getElementById('saveNote');
+                if (saveBtn && !saveBtn.disabled) {
+                    saveBtn.click();
+                }
+            }
+            // Shift+Enter allows default behavior (new line)
+        });
+    }
 
     // Save note (for new session)
     document.getElementById('saveNote').addEventListener('click', function() {
@@ -750,12 +878,13 @@
             }
         });
         
-        // Also save on Enter key (but don't add line break)
+        // Handle Enter key: Enter = blur/save, Shift+Enter = new line
         noteElement.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.blur(); // Trigger save
             }
+            // Shift+Enter allows default behavior (creates line break)
         });
     });
 

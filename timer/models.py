@@ -92,15 +92,20 @@ class ProjectTimer(models.Model):
         """Check if this timer has an active session on this project"""
         return self.sessions.filter(end_time__isnull=True).exists()
 
+    def is_paused(self):
+        """Check if this timer is currently paused"""
+        active_session = self.active_session()
+        return active_session and active_session.is_paused()
+
     def active_session(self):
         """Get the active session if any"""
         return self.sessions.filter(end_time__isnull=True).first()
 
     def current_duration_seconds(self):
-        """Get current duration in seconds if timer is running"""
+        """Get current duration in seconds if timer is running (excluding pauses)"""
         session = self.active_session()
         if session:
-            return (timezone.now() - session.start_time).total_seconds()
+            return session.duration_seconds()
         return 0
 
     def total_duration_seconds(self):
@@ -128,6 +133,7 @@ class TimerSession(models.Model):
     note = models.TextField(blank=True, default='')
     deliverable = models.ForeignKey('deliverables.Deliverable', on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions_created')
+    pause_start_time = models.DateTimeField(null=True, blank=True, help_text='Time when timer was paused (active pause, not resumed yet)')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -138,11 +144,33 @@ class TimerSession(models.Model):
     def __str__(self):
         return f"{self.project_timer.timer.task_name} - {self.start_time}"
 
+    def is_paused(self):
+        """Check if this session is currently paused"""
+        return self.pause_start_time is not None and self.end_time is None
+
+    def paused_duration_seconds(self):
+        """Calculate total duration of all completed pauses in seconds"""
+        total = 0
+        for pause in self.pauses.all():
+            total += pause.duration_seconds()
+        return total
+
     def duration_seconds(self):
-        """Calculate duration in seconds"""
+        """Calculate duration in seconds, excluding completed pauses"""
+        # Determine effective end time
         if self.end_time:
-            return (self.end_time - self.start_time).total_seconds()
-        return (timezone.now() - self.start_time).total_seconds()
+            effective_end = self.end_time
+        elif self.is_paused():
+            # If paused, duration is up to pause time
+            effective_end = self.pause_start_time
+        else:
+            # Still running
+            effective_end = timezone.now()
+        
+        base_duration = (effective_end - self.start_time).total_seconds()
+        # Subtract completed pause durations
+        pause_duration = self.paused_duration_seconds()
+        return max(0, base_duration - pause_duration)
 
     def cost(self):
         """Calculate cost for this session using the snapshot price"""
@@ -162,6 +190,41 @@ class TimerSession(models.Model):
                 active_sessions = active_sessions.exclude(pk=self.pk)
             if active_sessions.exists():
                 raise ValidationError("This timer already has an active session")
+
+
+class TimerPause(models.Model):
+    """A completed pause period (pause that was resumed)"""
+    session = models.ForeignKey(TimerSession, on_delete=models.CASCADE, related_name='pauses')
+    pause_start_time = models.DateTimeField()
+    pause_end_time = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['pause_start_time']
+        db_table = 'timer_app_timerpause'  # Use existing table name
+
+    def __str__(self):
+        return f"Pause: {self.pause_start_time} - {self.pause_end_time}"
+
+    def duration_seconds(self):
+        """Calculate pause duration in seconds"""
+        return (self.pause_end_time - self.pause_start_time).total_seconds()
+
+    def clean(self):
+        """Validate pause times"""
+        # Skip validation if fields are None (empty form in formset)
+        if self.pause_start_time is None or self.pause_end_time is None:
+            return
+        
+        if self.pause_end_time <= self.pause_start_time:
+            raise ValidationError("Pause end time must be after start time")
+        
+        # Validate pause is within session bounds
+        if self.session:
+            if self.pause_start_time < self.session.start_time:
+                raise ValidationError("Pause cannot start before session start")
+            if self.session.end_time and self.pause_end_time > self.session.end_time:
+                raise ValidationError("Pause cannot end after session end")
 
 
 # Helper functions for workspace management

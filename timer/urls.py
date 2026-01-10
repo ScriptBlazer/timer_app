@@ -54,6 +54,8 @@ urlpatterns = [
     path('timers/assign/', views.timer_assign_to_project, name='timer_assign_to_project'),
     path('project-timers/<int:pk>/remove/', views.project_timer_remove, name='project_timer_remove'),
     path('project-timers/<int:pk>/start/', views.timer_start, name='timer_start'),
+    path('project-timers/<int:pk>/pause/', views.timer_pause, name='timer_pause'),
+    path('project-timers/<int:pk>/resume/', views.timer_resume, name='timer_resume'),
     path('project-timers/<int:pk>/stop/', views.timer_stop, name='timer_stop'),
     
     # Sessions
