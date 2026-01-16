@@ -1,6 +1,7 @@
 """
 Signal handlers for updating analytics aggregates when sessions, pauses, timers, customers, projects, or deliverables change.
 """
+from decimal import Decimal
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.db import transaction
@@ -26,7 +27,9 @@ def update_workspace_aggregate(workspace_owner, time_delta=0, cost_delta=0, sess
     """Update workspace aggregate with deltas"""
     aggregate = get_or_create_workspace_aggregate(workspace_owner)
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    aggregate.total_cost = max(0, aggregate.total_cost + cost_delta)
+    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
+    cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
+    aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.total_sessions = max(0, aggregate.total_sessions + sessions_delta)
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'total_sessions', 'last_updated'])
 
@@ -43,7 +46,9 @@ def update_daily_aggregate(workspace_owner, date, time_delta=0, cost_delta=0, se
         }
     )
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    aggregate.total_cost = max(0, aggregate.total_cost + cost_delta)
+    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
+    cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
+    aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
@@ -60,7 +65,9 @@ def update_timer_aggregate(timer, workspace_owner, time_delta=0, cost_delta=0, s
         }
     )
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    aggregate.total_cost = max(0, aggregate.total_cost + cost_delta)
+    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
+    cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
+    aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
@@ -76,7 +83,9 @@ def update_project_aggregate(project, time_delta=0, cost_delta=0, sessions_delta
         }
     )
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    aggregate.total_cost = max(0, aggregate.total_cost + cost_delta)
+    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
+    cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
+    aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
@@ -93,7 +102,9 @@ def update_customer_aggregate(customer, time_delta=0, cost_delta=0, sessions_del
         }
     )
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    aggregate.total_cost = max(0, aggregate.total_cost + cost_delta)
+    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
+    cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
+    aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
     # Update project_count from actual projects
     aggregate.project_count = customer.projects.count()
@@ -113,7 +124,9 @@ def update_deliverable_aggregate(deliverable, time_delta=0, cost_delta=0, sessio
         }
     )
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    aggregate.total_cost = max(0, aggregate.total_cost + cost_delta)
+    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
+    cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
+    aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
@@ -132,7 +145,9 @@ def update_user_aggregate(user, workspace_owner, time_delta=0, cost_delta=0, ses
         }
     )
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    aggregate.total_cost = max(0, aggregate.total_cost + cost_delta)
+    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
+    cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
+    aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
