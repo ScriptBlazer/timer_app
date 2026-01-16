@@ -2,9 +2,14 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db.models import Q
+from django.db import connection, reset_queries
+from django.conf import settings
 import json
+import time
+import gc
 from collections import defaultdict
 from datetime import timedelta, datetime
+from pathlib import Path
 
 from customers.models import Customer
 from projects.models import Project
@@ -15,9 +20,88 @@ from timer.models import (
 from deliverables.models import Deliverable
 
 
+def calculate_benchmark_metrics(workspace_users, completed_sessions, timers, projects, customers, total_deliverables):
+    """Calculate benchmark metrics (queries, memory, time complexity)"""
+    queries = connection.queries
+    query_count = len(queries)
+    total_query_time = sum(float(q.get('time', 0)) for q in queries)
+    
+    # Group queries by type
+    query_types = defaultdict(int)
+    for query in queries:
+        sql = query.get('sql', '').upper().strip()
+        if sql.startswith('SELECT'):
+            query_types['SELECT'] += 1
+        elif sql.startswith('INSERT'):
+            query_types['INSERT'] += 1
+        elif sql.startswith('UPDATE'):
+            query_types['UPDATE'] += 1
+        elif sql.startswith('DELETE'):
+            query_types['DELETE'] += 1
+        else:
+            query_types['OTHER'] += 1
+    
+    # Calculate memory usage
+    try:
+        import psutil
+        import os
+        process = psutil.Process(os.getpid())
+        memory_mb = process.memory_info().rss / 1024 / 1024
+        memory_method = 'psutil'
+    except ImportError:
+        try:
+            import tracemalloc
+            if not tracemalloc.is_tracing():
+                tracemalloc.start()
+            current, peak = tracemalloc.get_traced_memory()
+            memory_mb = current / 1024 / 1024
+            memory_method = 'tracemalloc'
+        except:
+            memory_mb = 0
+            memory_method = None
+    
+    # Calculate time complexity
+    n_sessions = completed_sessions.count()
+    n_timers = timers.count()
+    n_projects = projects.count()
+    n_customers = customers.count()
+    
+    linear_ops = n_sessions
+    nested_ops = n_sessions * (n_timers + n_projects + n_customers)
+    
+    if nested_ops > linear_ops * 10:
+        complexity = "O(n*m)"
+        complexity_note = "Quadratic - nested iterations detected"
+    elif n_sessions > 1000:
+        complexity = "O(n)"
+        complexity_note = "Linear but large dataset"
+    else:
+        complexity = "O(n)"
+        complexity_note = "Linear - efficient"
+    
+    return {
+        'total_queries': query_count,
+        'total_query_time_seconds': round(total_query_time, 4),
+        'average_query_time_ms': round((total_query_time/query_count*1000), 2) if query_count > 0 else 0,
+        'query_types': dict(query_types),
+        'memory_method': memory_method,
+        'memory_mb': round(memory_mb, 2),
+        'complexity': complexity,
+        'complexity_note': complexity_note,
+    }
+
+
 @login_required
 def statistics(request):
     """Statistics and analytics page with charts"""
+    # Enable query logging for benchmark
+    was_debug = settings.DEBUG
+    settings.DEBUG = True
+    reset_queries()
+    
+    # Track calculation time
+    calculation_start = time.time()
+    
     workspace_users = get_workspace_users(request.user)
     
     # Get all completed sessions for the workspace
@@ -306,6 +390,50 @@ def statistics(request):
         'team_usernames': json.dumps(team_usernames),
         'team_hours': json.dumps(team_hours),
     }
+    
+    # Calculate benchmark metrics
+    calculation_time = time.time() - calculation_start
+    benchmark_metrics = calculate_benchmark_metrics(
+        workspace_users,
+        completed_sessions,
+        timers,
+        projects,
+        customers,
+        total_deliverables
+    )
+    
+    # Add benchmark data to context
+    context['benchmark_data'] = {
+        'timestamp': timezone.now().isoformat(),
+        'user': request.user.username,
+        'calculation_time_seconds': round(calculation_time, 4),
+        'data_statistics': {
+            'all_sessions_count': completed_sessions.count(),
+            'completed_sessions_count': completed_sessions.count(),
+            'total_timers': timers.count(),
+            'total_customers': customers.count(),
+            'total_deliverables': total_deliverables,
+            'active_projects': projects.filter(status='active').count(),
+            'completed_projects': projects.filter(status='completed').count(),
+        },
+        'database_performance': {
+            'total_queries': benchmark_metrics['total_queries'],
+            'total_query_time_seconds': benchmark_metrics['total_query_time_seconds'],
+            'average_query_time_ms': benchmark_metrics['average_query_time_ms'],
+            'query_types': benchmark_metrics['query_types'],
+        },
+        'memory_usage': {
+            'method': benchmark_metrics['memory_method'],
+            'memory_mb': benchmark_metrics['memory_mb'],
+        },
+        'time_complexity': {
+            'notation': benchmark_metrics['complexity'],
+            'analysis': benchmark_metrics['complexity_note'],
+        }
+    }
+    
+    # Restore DEBUG setting
+    settings.DEBUG = was_debug
     
     return render(request, 'analytics/analytics.html', context)
 

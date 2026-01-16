@@ -1,5 +1,6 @@
 {% extends "timer/base.html" %}
 {% load timer_filters %}
+{% load analytics_tags %}
 
 {% block title %}Analytics - Timer Tracker{% endblock %}
 
@@ -138,10 +139,335 @@
             height: 250px;
         }
     }
+
+    /* Benchmark Modal Styles */
+    .benchmark-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .benchmark-modal-overlay.show {
+        display: flex;
+    }
+
+    .benchmark-modal {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        animation: slideUp 0.3s ease;
+    }
+
+    .benchmark-modal-header {
+        padding: 2rem 2rem 1rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        z-index: 10;
+    }
+
+    .benchmark-modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1d1d1f;
+        margin: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .benchmark-modal-close {
+        background: #f0f0f0;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: #666;
+        transition: all 0.2s ease;
+        font-weight: 300;
+    }
+
+    .benchmark-modal-close:hover {
+        background: #e0e0e0;
+        transform: rotate(90deg);
+        color: #333;
+    }
+
+    .benchmark-modal-body {
+        padding: 2rem;
+    }
+
+    .benchmark-section {
+        margin-bottom: 2rem;
+    }
+
+    .benchmark-section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .benchmark-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .benchmark-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e9ecef;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .benchmark-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .benchmark-card-label {
+        font-size: 0.75rem;
+        color: #8e8e93;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .benchmark-card-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1d1d1f;
+    }
+
+    .benchmark-card-value.primary {
+        color: #667eea;
+    }
+
+    .benchmark-card-value.success {
+        color: #10b981;
+    }
+
+    .benchmark-card-value.warning {
+        color: #f59e0b;
+    }
+
+    .benchmark-complexity {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .benchmark-complexity-notation {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-family: 'Monaco', 'Menlo', monospace;
+    }
+
+    .benchmark-complexity-note {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .benchmark-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .benchmark-badge.select {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .benchmark-badge.insert {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .benchmark-badge.update {
+        background: #fef3c7;
+        color: #92400e;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Benchmark Modal Popup -->
+{% if benchmark_data %}
+<div id="benchmarkModal" class="benchmark-modal-overlay">
+    <div class="benchmark-modal">
+        <div class="benchmark-modal-header">
+            <h2 class="benchmark-modal-title">📊 Performance Benchmark</h2>
+            <button class="benchmark-modal-close" onclick="closeBenchmarkModal()">×</button>
+        </div>
+        <div class="benchmark-modal-body">
+            <!-- Time Complexity -->
+            <div class="benchmark-section">
+                <div class="benchmark-complexity">
+                    <div class="benchmark-complexity-notation">{{ benchmark_data.time_complexity.notation }}</div>
+                    <div class="benchmark-complexity-note">{{ benchmark_data.time_complexity.analysis }}</div>
+                </div>
+            </div>
+
+            <!-- Calculation Time -->
+            <div class="benchmark-section">
+                <div class="benchmark-section-title">⏱️ Calculation Performance</div>
+                <div class="benchmark-grid">
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Total Time</div>
+                        <div class="benchmark-card-value primary">{{ benchmark_data.calculation_time_seconds }}s</div>
+                    </div>
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Database Time</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.database_performance.total_query_time_seconds }}s</div>
+                    </div>
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Avg Query Time</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.database_performance.average_query_time_ms }}ms</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Performance -->
+            <div class="benchmark-section">
+                <div class="benchmark-section-title">🗄️ Database Queries</div>
+                <div class="benchmark-grid">
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Total Queries</div>
+                        <div class="benchmark-card-value warning">{{ benchmark_data.database_performance.total_queries }}</div>
+                    </div>
+                    {% if benchmark_data.database_performance.query_types.SELECT %}
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">SELECT</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.database_performance.query_types.SELECT }} <span class="benchmark-badge select">READ</span></div>
+                    </div>
+                    {% endif %}
+                    {% if benchmark_data.database_performance.query_types.INSERT %}
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">INSERT</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.database_performance.query_types.INSERT }} <span class="benchmark-badge insert">WRITE</span></div>
+                    </div>
+                    {% endif %}
+                    {% if benchmark_data.database_performance.query_types.UPDATE %}
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">UPDATE</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.database_performance.query_types.UPDATE }} <span class="benchmark-badge update">WRITE</span></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Memory Usage -->
+            {% if benchmark_data.memory_usage.method %}
+            <div class="benchmark-section">
+                <div class="benchmark-section-title">💾 Memory Usage</div>
+                <div class="benchmark-grid">
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Method</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.memory_usage.method|upper }}</div>
+                    </div>
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Memory Usage</div>
+                        <div class="benchmark-card-value success">{{ benchmark_data.memory_usage.memory_mb }} MB</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Data Statistics -->
+            <div class="benchmark-section">
+                <div class="benchmark-section-title">📈 Data Processed</div>
+                <div class="benchmark-grid">
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Sessions</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.data_statistics.completed_sessions_count }}</div>
+                    </div>
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Timers</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.data_statistics.total_timers }}</div>
+                    </div>
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Customers</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.data_statistics.total_customers }}</div>
+                    </div>
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Projects</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.data_statistics.active_projects }} active, {{ benchmark_data.data_statistics.completed_projects }} completed</div>
+                    </div>
+                    <div class="benchmark-card">
+                        <div class="benchmark-card-label">Deliverables</div>
+                        <div class="benchmark-card-value">{{ benchmark_data.data_statistics.total_deliverables }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timestamp -->
+            <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #e9ecef; margin-top: 2rem;">
+                <div style="font-size: 0.75rem; color: #8e8e93;">
+                    Calculated at: {{ benchmark_data.timestamp|date:"Y-m-d H:i:s" }}<br>
+                    <small>Performance metrics calculated automatically on each page load</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="page-header">
     <h1 class="page-title" style="font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px; color: #1d1d1f;">Analytics</h1>
 </div>
@@ -1233,6 +1559,58 @@
         // But wait a bit for Chart.js script to load
         setTimeout(initCharts, 100);
     }
+
+    // Benchmark Modal Functions
+    function showBenchmarkModal() {
+        const modal = document.getElementById('benchmarkModal');
+        if (modal) {
+            modal.classList.add('show');
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeBenchmarkModal() {
+        const modal = document.getElementById('benchmarkModal');
+        if (modal) {
+            modal.classList.remove('show');
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('benchmarkModal');
+        console.log('Benchmark modal check:', modal ? 'Found' : 'Not found');
+        
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeBenchmarkModal();
+                }
+            });
+
+            // Show modal after page loads (with slight delay for smooth animation)
+            console.log('Showing benchmark modal in 500ms...');
+            setTimeout(function() {
+                console.log('Attempting to show modal...');
+                showBenchmarkModal();
+            }, 500);
+        } else {
+            console.log('Benchmark modal not found in DOM. Run: python manage.py benchmark_analytics');
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeBenchmarkModal();
+            }
+        });
+    });
+
+    // Make closeBenchmarkModal available globally
+    window.closeBenchmarkModal = closeBenchmarkModal;
 </script>
 {% endblock %}
 
