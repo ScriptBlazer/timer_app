@@ -97,6 +97,27 @@
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
     }
 
+    .performance-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 1rem;
+    }
+
+    .performance-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .performance-btn:active {
+        transform: translateY(0);
+    }
+
     .chart-title {
         font-size: 0.875rem;
         font-weight: 600;
@@ -203,6 +224,11 @@
         <div style="font-size: 0.875rem; color: #8e8e93; margin-top: 0.25rem;">{{ most_active_day_hours|floatformat:1 }}h</div>
     </div> -->
 </div>
+
+<!-- Performance Report Button -->
+<button class="performance-btn" onclick="showPerformanceReport()">
+    📊 View Performance Report
+</button>
 
 <!-- Charts Grid -->
 <div class="charts-grid">
@@ -1234,5 +1260,8 @@
         setTimeout(initCharts, 100);
     }
 </script>
+
+<!-- Include Performance Report Modal -->
+{% include 'analytics/performance_report_modal.html' %}
 {% endblock %}
 

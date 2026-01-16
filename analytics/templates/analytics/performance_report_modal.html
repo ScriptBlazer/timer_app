@@ -1,0 +1,545 @@
+<!-- Performance Report Modal -->
+<div id="performanceModal" class="performance-modal">
+    <div class="performance-modal-content">
+        <div class="performance-modal-header">
+            <h2>📊 Performance Report</h2>
+            <button class="performance-modal-close" onclick="closePerformanceModal()" aria-label="Close">×</button>
+        </div>
+        <div id="performanceModalBody" class="performance-modal-body">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Performance Report Modal */
+    .performance-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .performance-modal.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .performance-modal-content {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 90%;
+        max-height: 90vh;
+        width: 900px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .performance-modal-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .performance-modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .performance-modal-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+    }
+
+    .performance-modal-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .performance-modal-body {
+        padding: 2rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .performance-section {
+        margin-bottom: 2rem;
+    }
+
+    .performance-section h3 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        color: #1f2937;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 0.5rem;
+    }
+
+    .performance-metric {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+    }
+
+    .metric-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .metric-value.passed {
+        color: #10b981;
+    }
+
+    .metric-value.failed {
+        color: #ef4444;
+    }
+
+    .query-breakdown {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .query-type-badge {
+        background: #e5e7eb;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .query-type-badge.select { background: #dbeafe; color: #1e40af; }
+    .query-type-badge.insert { background: #dcfce7; color: #166534; }
+    .query-type-badge.update { background: #fef3c7; color: #92400e; }
+    .query-type-badge.delete { background: #fee2e2; color: #991b1b; }
+
+    .query-details {
+        max-height: 300px;
+        overflow-y: auto;
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .query-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+        font-family: 'Courier New', monospace;
+        font-size: 0.75rem;
+    }
+
+    .query-item:last-child {
+        border-bottom: none;
+    }
+
+    .query-item-time {
+        color: #667eea;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+
+    .performance-loading {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+    }
+
+    .performance-error {
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    .performance-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 1rem;
+    }
+
+    .performance-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .performance-btn:active {
+        transform: translateY(0);
+    }
+</style>
+
+<script>
+    // Performance Report Modal Functions
+    function showPerformanceReport() {
+        const modal = document.getElementById('performanceModal');
+        const body = document.getElementById('performanceModalBody');
+        
+        // Show loading state
+        body.innerHTML = '<div class="performance-loading">🔄 Running performance test...</div>';
+        modal.classList.add('active');
+        
+        // Fetch performance data
+        fetch('{% url "analytics_performance_report" %}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayPerformanceReport(data);
+                } else {
+                    body.innerHTML = `
+                        <div class="performance-error">
+                            <strong>Error:</strong> ${data.error || 'Unknown error'}
+                            ${data.traceback ? '<pre style="margin-top: 1rem; font-size: 0.75rem;">' + data.traceback + '</pre>' : ''}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                body.innerHTML = `
+                    <div class="performance-error">
+                        <strong>Error fetching performance data:</strong> ${error.message}
+                    </div>
+                `;
+            });
+    }
+
+    function displayPerformanceReport(data) {
+        const body = document.getElementById('performanceModalBody');
+        const perf = data.performance;
+        const memory = data.memory || {};
+        const database = data.database || {};
+        const targets = data.targets;
+        const queryBreakdown = data.query_breakdown;
+        const queryDetails = data.query_details || [];
+        const slowestQueries = data.slowest_queries || [];
+        const context = data.context_data || {};
+        const dataStats = data.data_statistics || {};
+        
+        const passedClass = targets.passed ? 'passed' : 'failed';
+        const passedIcon = targets.passed ? '✅' : '❌';
+        
+        let html = `
+            <div class="performance-section">
+                <h3>📊 Performance Metrics</h3>
+                <div class="performance-metric">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Queries</div>
+                        <div class="metric-value ${perf.total_queries < targets.query_count ? 'passed' : 'failed'}">
+                            ${perf.total_queries}
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Load Time</div>
+                        <div class="metric-value ${perf.total_load_time_ms < targets.calculation_time_ms ? 'passed' : 'failed'}">
+                            ${perf.total_load_time_ms.toFixed(2)}ms
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Calculation Time</div>
+                        <div class="metric-value">${perf.calculation_time_ms.toFixed(2)}ms</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Query Time</div>
+                        <div class="metric-value">${perf.total_query_time_ms.toFixed(2)}ms</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Average Query Time</div>
+                        <div class="metric-value">${perf.average_query_time_ms.toFixed(2)}ms</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Non-Query Time</div>
+                        <div class="metric-value">${(perf.non_query_time_ms || 0).toFixed(2)}ms</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Query Time %</div>
+                        <div class="metric-value">${(perf.query_time_percentage || 0).toFixed(1)}%</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem; background: ${targets.passed ? '#d1fae5' : '#fee2e2'}; border-radius: 8px; margin-top: 1rem;">
+                    <strong>${passedIcon} Overall Status: ${targets.passed ? 'PASSED' : 'NEEDS IMPROVEMENT'}</strong>
+                    <br><small>Targets: &lt;${targets.query_count} queries, &lt;${targets.calculation_time_ms}ms</small>
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>🗄️ Database Information</h3>
+                <div class="performance-metric">
+                    <div class="metric-card">
+                        <div class="metric-label">Database Backend</div>
+                        <div class="metric-value" style="font-size: 1.25rem;">${database.backend || 'Unknown'}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Database Version</div>
+                        <div class="metric-value" style="font-size: 1rem;">${database.version || 'Unknown'}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>💾 Memory Usage</h3>
+                <div class="performance-metric">
+                    <div class="metric-card">
+                        <div class="metric-label">Memory Before</div>
+                        <div class="metric-value">${(memory.memory_before_mb || 0).toFixed(2)} MB</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Memory After</div>
+                        <div class="metric-value">${(memory.memory_after_mb || 0).toFixed(2)} MB</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Memory Used</div>
+                        <div class="metric-value ${(memory.memory_used_mb || 0) > 50 ? 'failed' : 'passed'}">
+                            ${(memory.memory_used_mb || 0).toFixed(2)} MB
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Tracking Method</div>
+                        <div class="metric-value" style="font-size: 1rem;">${memory.method || 'N/A'}</div>
+                    </div>
+                </div>
+                ${(memory.memory_used_mb || 0) > 50 ? `
+                <div style="padding: 1rem; background: #fee2e2; border-radius: 8px; margin-top: 1rem;">
+                    <strong>⚠️ High Memory Usage:</strong> ${(memory.memory_used_mb || 0).toFixed(2)} MB used during calculation
+                </div>
+                ` : ''}
+            </div>
+
+            <div class="performance-section">
+                <h3>🔍 Query Breakdown</h3>
+                <div class="query-breakdown">
+                    ${Object.entries(queryBreakdown).map(([type, count]) => `
+                        <div class="query-type-badge ${type.toLowerCase()}">
+                            ${type}: ${count}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>🐌 Slowest Queries (Top 10)</h3>
+                <div class="query-details">
+                    ${slowestQueries.length > 0 ? slowestQueries.map((q, i) => `
+                        <div class="query-item">
+                            <strong>#${i + 1}</strong> ${q.sql}
+                            <span class="query-item-time">${q.time_ms.toFixed(2)}ms</span>
+                        </div>
+                    `).join('') : '<div class="query-item">No queries recorded</div>'}
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>📝 All Query Details (First 50)</h3>
+                <div class="query-details">
+                    ${queryDetails.length > 0 ? queryDetails.map((q, i) => `
+                        <div class="query-item">
+                            <strong>#${i + 1}</strong> [${q.type}] ${q.sql}
+                            <span class="query-item-time">${(q.time * 1000).toFixed(2)}ms</span>
+                        </div>
+                    `).join('') : '<div class="query-item">No queries recorded</div>'}
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>📦 Context Data</h3>
+                <div class="performance-metric">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Sessions</div>
+                        <div class="metric-value">${context.total_sessions || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Time</div>
+                        <div class="metric-value">${context.total_time_hours || 0}h</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Cost</div>
+                        <div class="metric-value">$${(context.total_cost || 0).toFixed(2)}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">This Week Hours</div>
+                        <div class="metric-value">${context.this_week_hours || 0}h</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">This Week Cost</div>
+                        <div class="metric-value">$${(context.this_week_cost || 0).toFixed(2)}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Timers</div>
+                        <div class="metric-value">${context.total_timers || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Customers</div>
+                        <div class="metric-value">${context.total_customers || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Deliverables</div>
+                        <div class="metric-value">${context.total_deliverables || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Active Projects</div>
+                        <div class="metric-value">${context.active_projects || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Completed Projects</div>
+                        <div class="metric-value">${context.completed_projects || 0}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>📊 Aggregate Statistics</h3>
+                <div class="performance-metric">
+                    <div class="metric-card">
+                        <div class="metric-label">Daily Aggregates</div>
+                        <div class="metric-value">${dataStats.daily_aggregates || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Timer Aggregates</div>
+                        <div class="metric-value">${dataStats.timer_aggregates || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Project Aggregates</div>
+                        <div class="metric-value">${dataStats.project_aggregates || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Customer Aggregates</div>
+                        <div class="metric-value">${dataStats.customer_aggregates || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Deliverable Aggregates</div>
+                        <div class="metric-value">${dataStats.deliverable_aggregates || 0}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">User Aggregates</div>
+                        <div class="metric-value">${dataStats.user_aggregates || 0}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>⏱️ Time Complexity & Analysis</h3>
+                <div style="padding: 1rem; background: #dbeafe; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong>Complexity:</strong> O(1) - Constant time lookups using pre-aggregated data<br>
+                    <strong>Analysis:</strong> All calculations use pre-computed aggregates stored in database tables.
+                    This eliminates the need for expensive Python loops and nested queries.
+                </div>
+                <div style="padding: 1rem; background: #f0fdf4; border-radius: 8px;">
+                    <strong>Performance Breakdown:</strong><br>
+                    • Query Time: ${perf.total_query_time_ms.toFixed(2)}ms (${(perf.query_time_percentage || 0).toFixed(1)}%)<br>
+                    • Processing Time: ${(perf.non_query_time_ms || 0).toFixed(2)}ms (${(100 - (perf.query_time_percentage || 0)).toFixed(1)}%)<br>
+                    • Queries per Second: ${(perf.total_queries / (perf.total_load_time_seconds || 1)).toFixed(1)}<br>
+                    • Average Data per Query: ${(perf.total_queries > 0 ? ((dataStats.daily_aggregates || 0) + (dataStats.timer_aggregates || 0) + (dataStats.project_aggregates || 0)) / perf.total_queries : 0).toFixed(1)} aggregates
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>💡 Performance Recommendations</h3>
+                <div style="padding: 1rem; background: #fef3c7; border-radius: 8px;">
+                    ${perf.total_queries >= targets.query_count ? `
+                    <strong>⚠️ High Query Count:</strong> Consider using more database aggregations or caching.<br>
+                    ` : ''}
+                    ${perf.total_load_time_ms >= targets.calculation_time_ms ? `
+                    <strong>⚠️ Slow Load Time:</strong> Consider optimizing slow queries or adding indexes.<br>
+                    ` : ''}
+                    ${(perf.query_time_percentage || 0) > 80 ? `
+                    <strong>⚠️ Query-Heavy:</strong> ${(perf.query_time_percentage || 0).toFixed(1)}% of time spent on queries. Consider query optimization.<br>
+                    ` : ''}
+                    ${(memory.memory_used_mb || 0) > 50 ? `
+                    <strong>⚠️ High Memory Usage:</strong> ${(memory.memory_used_mb || 0).toFixed(2)} MB used. Consider using iterator() for large datasets.<br>
+                    ` : ''}
+                    ${perf.total_queries < targets.query_count && perf.total_load_time_ms < targets.calculation_time_ms ? `
+                    <strong>✅ Excellent Performance:</strong> All metrics are within target ranges!<br>
+                    ` : ''}
+                    ${!targets.passed ? `
+                    <strong>💡 Optimization Tips:</strong><br>
+                    • Use select_related() and prefetch_related() to reduce queries<br>
+                    • Consider database indexing on frequently queried fields<br>
+                    • Use aggregate models (already implemented) for O(1) lookups<br>
+                    • Cache frequently accessed data
+                    ` : ''}
+                </div>
+            </div>
+
+            <div class="performance-section">
+                <h3>ℹ️ Test Information</h3>
+                <div style="padding: 1rem; background: #f9fafb; border-radius: 8px; font-size: 0.875rem;">
+                    <strong>User:</strong> ${data.user}<br>
+                    <strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}<br>
+                    <strong>Test Duration:</strong> ${perf.calculation_time_seconds.toFixed(4)}s
+                </div>
+            </div>
+        `;
+        
+        body.innerHTML = html;
+    }
+
+    function closePerformanceModal() {
+        document.getElementById('performanceModal').classList.remove('active');
+    }
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePerformanceModal();
+        }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('performanceModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePerformanceModal();
+        }
+    });
+</script>
