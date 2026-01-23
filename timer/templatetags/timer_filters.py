@@ -1,4 +1,5 @@
 from django import template
+from common.templatetags.common_filters import format_currency_with_commas
 
 register = template.Library()
 
@@ -19,9 +20,6 @@ def format_duration(seconds):
 
 @register.filter
 def format_currency(value):
-    """Format value as currency"""
-    try:
-        return f"£{float(value):.2f}"
-    except (ValueError, TypeError):
-        return "£0.00"
+    """Format value as currency with comma separators"""
+    return format_currency_with_commas(value)
 

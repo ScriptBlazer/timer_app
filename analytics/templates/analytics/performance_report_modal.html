@@ -223,6 +223,14 @@
 </style>
 
 <script>
+    // Currency formatting helper function with comma separators
+    function formatCurrency(value, decimals = 2) {
+        return '£' + parseFloat(value).toLocaleString('en-GB', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    }
+
     // Performance Report Modal Functions
     function showPerformanceReport() {
         const modal = document.getElementById('performanceModal');
@@ -405,7 +413,7 @@
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Total Cost</div>
-                        <div class="metric-value">$${(context.total_cost || 0).toFixed(2)}</div>
+                        <div class="metric-value">${formatCurrency(context.total_cost || 0, 2)}</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">This Week Hours</div>
@@ -413,7 +421,7 @@
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">This Week Cost</div>
-                        <div class="metric-value">$${(context.this_week_cost || 0).toFixed(2)}</div>
+                        <div class="metric-value">${formatCurrency(context.this_week_cost || 0, 2)}</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Total Timers</div>
