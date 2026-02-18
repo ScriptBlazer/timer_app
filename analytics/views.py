@@ -148,13 +148,13 @@ def statistics(request):
     completed_sessions = TimerSession.objects.filter(
         project_timer__project__customer__user__in=workspace_users,
         end_time__isnull=False
-    ).only('end_time', 'start_time')
+    ).only('end_time', 'start_time', 'pause_start_time').prefetch_related('pauses')
     
     # Calculate day stats in Python
     day_stats = defaultdict(float)
     for session in completed_sessions:
         day_name = day_names[session.end_time.weekday()]
-        duration = (session.end_time - session.start_time).total_seconds()
+        duration = session.duration_seconds()
         day_stats[day_name] += duration
     
     
@@ -270,7 +270,7 @@ def statistics(request):
     hourly_stats = defaultdict(float)
     for session in completed_sessions:
         hour = session.start_time.hour
-        duration = (session.end_time - session.start_time).total_seconds()
+        duration = session.duration_seconds()
         hourly_stats[hour] += duration
     
     hourly_labels = [f"{h:02d}:00" for h in range(24)]
@@ -315,8 +315,9 @@ def statistics(request):
         end_time__isnull=False,
         end_time__gte=thirty_days_ago
     ).select_related('project_timer', 'project_timer__timer').only(
-        'end_time', 'start_time', 'price_per_hour', 'project_timer__timer__task_name', 'project_timer__timer__header_color'
-    )
+        'end_time', 'start_time', 'pause_start_time', 'price_per_hour',
+        'project_timer__timer__task_name', 'project_timer__timer__header_color'
+    ).prefetch_related('pauses')
     
     # Convert to nested dict structure - calculate cost in Python
     timer_cost_over_time = defaultdict(lambda: defaultdict(float))
@@ -328,9 +329,8 @@ def statistics(request):
         timer_color = session.project_timer.timer.header_color
         date_key = session.end_time.date()
         
-        # Calculate cost: price_per_hour * duration_hours
-        duration_seconds = (session.end_time - session.start_time).total_seconds()
-        duration_hours = duration_seconds / 3600
+        # Calculate cost using duration_seconds() which correctly excludes pauses
+        duration_hours = session.duration_seconds() / 3600
         cost = float(session.price_per_hour) * duration_hours
         
         timer_cost_over_time[timer_name][date_key] += cost

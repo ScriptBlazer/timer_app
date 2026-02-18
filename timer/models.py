@@ -109,11 +109,10 @@ class ProjectTimer(models.Model):
         return 0
 
     def total_duration_seconds(self):
-        """Calculate total duration across all completed sessions in seconds"""
+        """Calculate total duration across all completed sessions in seconds, excluding pauses"""
         total = 0
         for session in self.sessions.filter(end_time__isnull=False):
-            duration = (session.end_time - session.start_time).total_seconds()
-            total += duration
+            total += session.duration_seconds()
         return total
 
     def total_cost(self):
