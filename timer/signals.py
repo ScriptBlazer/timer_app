@@ -6,6 +6,7 @@ from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.db import transaction
 from django.utils import timezone
+from deliverables.models import Deliverable
 from .models import TimerSession, TimerPause, Timer
 from analytics.models import (
     WorkspaceAggregate, DailyAggregate, TimerAggregate,
@@ -72,59 +73,57 @@ def update_timer_aggregate(timer, workspace_owner, time_delta=0, cost_delta=0, s
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
 
-def update_project_aggregate(project, time_delta=0, cost_delta=0, sessions_delta=0):
+def update_project_aggregate(project, time_delta=0, cost_delta=0, sessions_delta=0, create_if_missing=True):
     """Update project aggregate with deltas"""
-    aggregate, created = ProjectAggregate.objects.get_or_create(
-        project=project,
-        defaults={
-            'total_time_seconds': 0,
-            'total_cost': 0,
-            'session_count': 0
-        }
-    )
+    if create_if_missing:
+        aggregate, _ = ProjectAggregate.objects.get_or_create(
+            project=project,
+            defaults={'total_time_seconds': 0, 'total_cost': 0, 'session_count': 0}
+        )
+    else:
+        aggregate = ProjectAggregate.objects.filter(project=project).first()
+        if aggregate is None:
+            return  # Already deleted by cascade, skip
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
     cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
     aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
 
-def update_customer_aggregate(customer, time_delta=0, cost_delta=0, sessions_delta=0):
+def update_customer_aggregate(customer, time_delta=0, cost_delta=0, sessions_delta=0, create_if_missing=True):
     """Update customer aggregate with deltas"""
-    aggregate, created = CustomerAggregate.objects.get_or_create(
-        customer=customer,
-        defaults={
-            'total_time_seconds': 0,
-            'total_cost': 0,
-            'session_count': 0,
-            'project_count': 0
-        }
-    )
+    if create_if_missing:
+        aggregate, _ = CustomerAggregate.objects.get_or_create(
+            customer=customer,
+            defaults={'total_time_seconds': 0, 'total_cost': 0, 'session_count': 0, 'project_count': 0}
+        )
+    else:
+        aggregate = CustomerAggregate.objects.filter(customer=customer).first()
+        if aggregate is None:
+            return  # Already deleted by cascade, skip
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
     cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
     aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
-    # Update project_count from actual projects
     aggregate.project_count = customer.projects.count()
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'project_count', 'last_updated'])
 
 
-def update_deliverable_aggregate(deliverable, time_delta=0, cost_delta=0, sessions_delta=0):
+def update_deliverable_aggregate(deliverable, time_delta=0, cost_delta=0, sessions_delta=0, create_if_missing=True):
     """Update deliverable aggregate with deltas"""
     if not deliverable:
         return
-    aggregate, created = DeliverableAggregate.objects.get_or_create(
-        deliverable=deliverable,
-        defaults={
-            'total_time_seconds': 0,
-            'total_cost': 0,
-            'session_count': 0
-        }
-    )
+    if create_if_missing:
+        aggregate, _ = DeliverableAggregate.objects.get_or_create(
+            deliverable=deliverable,
+            defaults={'total_time_seconds': 0, 'total_cost': 0, 'session_count': 0}
+        )
+    else:
+        aggregate = DeliverableAggregate.objects.filter(deliverable=deliverable).first()
+        if aggregate is None:
+            return  # Already deleted by cascade, skip
     aggregate.total_time_seconds = max(0, aggregate.total_time_seconds + time_delta)
-    # Convert cost_delta to Decimal for proper arithmetic with DecimalField
     cost_delta_decimal = Decimal(str(cost_delta)) if cost_delta else Decimal('0')
     aggregate.total_cost = max(Decimal('0'), aggregate.total_cost + cost_delta_decimal)
     aggregate.session_count = max(0, aggregate.session_count + sessions_delta)
@@ -152,7 +151,20 @@ def update_user_aggregate(user, workspace_owner, time_delta=0, cost_delta=0, ses
     aggregate.save(update_fields=['total_time_seconds', 'total_cost', 'session_count', 'last_updated'])
 
 
-def recalculate_session_aggregates(session, is_deletion=False):
+def get_session_deliverable_if_exists(session):
+    """
+    Resolve deliverable without raising DoesNotExist. During CASCADE deletes (e.g. customer
+    or project), the deliverable row may already be gone while session.deliverable_id is still set.
+    """
+    if not session.deliverable_id:
+        return None
+    try:
+        return Deliverable.objects.get(pk=session.deliverable_id)
+    except Deliverable.DoesNotExist:
+        return None
+
+
+def recalculate_session_aggregates(session, is_deletion=False, create_if_missing=None):
     """
     Recalculate all aggregates affected by a session.
     This is used when:
@@ -162,6 +174,10 @@ def recalculate_session_aggregates(session, is_deletion=False):
     - Pause is added/edited/deleted (affects session duration)
     
     For edits, we need to calculate the delta (old vs new values).
+    
+    create_if_missing: if None, defaults to (not is_deletion). Pass False explicitly
+    when calling from a pause-delete handler during a cascade, so we never create
+    ghost aggregate rows that would violate FK constraints at commit time.
     """
     # Only process completed sessions (with end_time)
     if not session.end_time and not is_deletion:
@@ -171,28 +187,39 @@ def recalculate_session_aggregates(session, is_deletion=False):
     timer = session.project_timer.timer
     project = session.project_timer.project
     customer = project.customer
-    deliverable = session.deliverable
+    deliverable = get_session_deliverable_if_exists(session)
     user = session.created_by
     
     # Calculate session values
     # Note: duration_seconds() already handles pauses correctly
-    time_seconds = session.duration_seconds() if not is_deletion else 0
-    cost = session.cost() if not is_deletion else 0
-    sessions_count = 1 if not is_deletion else -1
+    if is_deletion:
+        time_seconds = -session.duration_seconds()
+        cost = -session.cost()
+        sessions_count = -1
+    else:
+        time_seconds = session.duration_seconds()
+        cost = session.cost()
+        sessions_count = 1
     
     # Determine date for daily aggregate
     date = session.end_time.date() if session.end_time else timezone.now().date()
     
+    # During cascade delete, project/customer/deliverable aggregates may already be
+    # deleted - use create_if_missing=False to avoid creating ghost rows that cause
+    # FK constraint failures at commit time.
+    if create_if_missing is None:
+        create_if_missing = not is_deletion
+
     # Update all affected aggregates
     update_workspace_aggregate(workspace_owner, time_seconds, cost, sessions_count)
     update_daily_aggregate(workspace_owner, date, time_seconds, cost, sessions_count)
     update_timer_aggregate(timer, workspace_owner, time_seconds, cost, sessions_count)
-    update_project_aggregate(project, time_seconds, cost, sessions_count)
-    update_customer_aggregate(customer, time_seconds, cost, sessions_count)
-    
+    update_project_aggregate(project, time_seconds, cost, sessions_count, create_if_missing=create_if_missing)
+    update_customer_aggregate(customer, time_seconds, cost, sessions_count, create_if_missing=create_if_missing)
+
     if deliverable:
-        update_deliverable_aggregate(deliverable, time_seconds, cost, sessions_count)
-    
+        update_deliverable_aggregate(deliverable, time_seconds, cost, sessions_count, create_if_missing=create_if_missing)
+
     if user:
         update_user_aggregate(user, workspace_owner, time_seconds, cost, sessions_count)
 
@@ -240,7 +267,7 @@ def update_aggregates_on_session_save(sender, instance, created, **kwargs):
     timer = instance.project_timer.timer
     project = instance.project_timer.project
     customer = project.customer
-    deliverable = instance.deliverable
+    deliverable = get_session_deliverable_if_exists(instance)
     user = instance.created_by
     
     # Calculate new values
@@ -339,8 +366,11 @@ def update_aggregates_on_pause_delete(sender, instance, **kwargs):
         return
     
     with transaction.atomic():
-        # Recalculate session aggregates (duration will change due to pause deletion)
-        recalculate_session_aggregates(session, is_deletion=False)
+        # Pass create_if_missing=False so that if this fires during a cascade delete
+        # (project/customer being deleted), we don't create ghost aggregate rows that
+        # would violate FK constraints at commit time. In normal operation the
+        # aggregates already exist and will be found and updated correctly.
+        recalculate_session_aggregates(session, is_deletion=False, create_if_missing=False)
 
 
 @receiver(post_save, sender=Timer)
