@@ -9,6 +9,8 @@ from timer import views as timer_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('manifest.webmanifest', timer_views.web_app_manifest, name='web_app_manifest'),
+    path('serviceworker.js', timer_views.service_worker, name='service_worker'),
     path('health/', timer_views.health_check, name='health_check'),  # Public health check endpoint
     path('', include('timer.urls')),
     path('analytics/', include('analytics.urls')),

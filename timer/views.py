@@ -730,6 +730,35 @@ def session_delete(request, pk):
     })
 
 
+def web_app_manifest(request):
+    """Serve manifest with hashed static icon URLs for production collectstatic."""
+    return render(
+        request,
+        'timer/manifest.webmanifest',
+        content_type='application/manifest+json',
+    )
+
+
+def service_worker(request):
+    """Serve the service worker from site root so it can use scope '/'."""
+    from django.contrib.staticfiles import finders
+    from django.http import HttpResponse
+
+    path = finders.find('js/serviceworker.js')
+    if path is None:
+        return HttpResponse(
+            '// Service worker source not found',
+            status=404,
+            content_type='application/javascript',
+        )
+    with open(path, encoding='utf-8') as f:
+        content = f.read()
+    response = HttpResponse(content, content_type='application/javascript')
+    response['Service-Worker-Allowed'] = '/'
+    response['Cache-Control'] = 'no-cache'
+    return response
+
+
 @csrf_exempt
 def health_check(request):
     """Public health check endpoint - no authentication required"""
