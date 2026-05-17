@@ -122,8 +122,8 @@ def statistics(request):
     
     # This week's statistics from daily aggregates (efficient!)
     now = timezone.now()
-    week_start = now - timedelta(days=now.weekday())
-    week_start_date = week_start.date()
+    today = timezone.localdate()
+    week_start_date = today - timedelta(days=today.weekday())
     
     # Get daily aggregates for this week
     this_week_daily = DailyAggregate.objects.filter(
@@ -153,7 +153,7 @@ def statistics(request):
     # Calculate day stats in Python
     day_stats = defaultdict(float)
     for session in completed_sessions:
-        day_name = day_names[session.end_time.weekday()]
+        day_name = day_names[timezone.localtime(session.end_time).weekday()]
         duration = session.duration_seconds()
         day_stats[day_name] += duration
     
@@ -229,7 +229,7 @@ def statistics(request):
     thirty_days_ago = now - timedelta(days=30)
     daily_aggregates = DailyAggregate.objects.filter(
         workspace_owner=workspace_owner,
-        date__gte=thirty_days_ago.date()
+        date__gte=timezone.localdate(thirty_days_ago)
     ).order_by('date')
     
     # Build daily stats from aggregates
@@ -246,7 +246,7 @@ def statistics(request):
     twelve_weeks_ago = now - timedelta(days=84)
     weekly_daily_aggregates = DailyAggregate.objects.filter(
         workspace_owner=workspace_owner,
-        date__gte=twelve_weeks_ago.date()
+        date__gte=timezone.localdate(twelve_weeks_ago)
     )
     
     # Group daily aggregates by week
@@ -269,7 +269,7 @@ def statistics(request):
     # Hourly distribution (0-23) - calculate in Python for SQLite compatibility
     hourly_stats = defaultdict(float)
     for session in completed_sessions:
-        hour = session.start_time.hour
+        hour = timezone.localtime(session.start_time).hour
         duration = session.duration_seconds()
         hourly_stats[hour] += duration
     
@@ -280,7 +280,7 @@ def statistics(request):
     six_months_ago = now - timedelta(days=180)
     monthly_daily_aggregates = DailyAggregate.objects.filter(
         workspace_owner=workspace_owner,
-        date__gte=six_months_ago.date()
+        date__gte=timezone.localdate(six_months_ago)
     )
     
     # Group by month
@@ -327,7 +327,7 @@ def statistics(request):
     for session in cost_breakdown_sessions:
         timer_name = session.project_timer.timer.task_name
         timer_color = session.project_timer.timer.header_color
-        date_key = session.end_time.date()
+        date_key = timezone.localdate(session.end_time)
         
         # Calculate cost using duration_seconds() which correctly excludes pauses
         duration_hours = session.duration_seconds() / 3600
@@ -595,9 +595,8 @@ def performance_report(request):
             workspace_agg = None
         
         # Get this week's data
-        now = timezone.now()
-        week_start = now - timedelta(days=now.weekday())
-        week_start_date = week_start.date()
+        today = timezone.localdate()
+        week_start_date = today - timedelta(days=today.weekday())
         
         this_week_daily = DailyAggregate.objects.filter(
             workspace_owner=workspace_owner,

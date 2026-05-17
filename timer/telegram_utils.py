@@ -2,6 +2,7 @@
 import requests
 import os
 from django.conf import settings
+from django.utils import timezone
 from dotenv import load_dotenv
 
 
@@ -35,7 +36,7 @@ def send_telegram_approval_request(pending_registration, request):
         f"🔔 *New Registration Request*\n\n"
         f"*Username:* {pending_registration.username}\n"
         f"*Email:* {pending_registration.email}\n"
-        f"*Requested:* {pending_registration.created_at.strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"*Requested:* {timezone.localtime(pending_registration.created_at).strftime('%Y-%m-%d %H:%M')}\n\n"
         f"Please approve or deny this registration:"
     )
     

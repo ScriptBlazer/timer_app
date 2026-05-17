@@ -2,6 +2,7 @@ from django import forms
 from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import Timer, ProjectTimer, TimerSession, TimerPause
 
 
@@ -49,9 +50,9 @@ class SessionEditForm(forms.ModelForm):
         # Format datetime fields for HTML5 datetime-local input
         if self.instance and self.instance.pk:
             if self.instance.start_time:
-                self.initial['start_time'] = self.instance.start_time.strftime('%Y-%m-%dT%H:%M')
+                self.initial['start_time'] = timezone.localtime(self.instance.start_time).strftime('%Y-%m-%dT%H:%M')
             if self.instance.end_time:
-                self.initial['end_time'] = self.instance.end_time.strftime('%Y-%m-%dT%H:%M')
+                self.initial['end_time'] = timezone.localtime(self.instance.end_time).strftime('%Y-%m-%dT%H:%M')
         
         # Filter deliverables by project
         if self.instance and self.instance.pk:
@@ -76,9 +77,9 @@ class PauseForm(forms.ModelForm):
         # Format datetime fields for HTML5 datetime-local input
         if self.instance and self.instance.pk:
             if self.instance.pause_start_time:
-                self.initial['pause_start_time'] = self.instance.pause_start_time.strftime('%Y-%m-%dT%H:%M')
+                self.initial['pause_start_time'] = timezone.localtime(self.instance.pause_start_time).strftime('%Y-%m-%dT%H:%M')
             if self.instance.pause_end_time:
-                self.initial['pause_end_time'] = self.instance.pause_end_time.strftime('%Y-%m-%dT%H:%M')
+                self.initial['pause_end_time'] = timezone.localtime(self.instance.pause_end_time).strftime('%Y-%m-%dT%H:%M')
 
 
 # Inline formset for pauses

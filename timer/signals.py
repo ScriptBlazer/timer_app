@@ -202,7 +202,7 @@ def recalculate_session_aggregates(session, is_deletion=False, create_if_missing
         sessions_count = 1
     
     # Determine date for daily aggregate
-    date = session.end_time.date() if session.end_time else timezone.now().date()
+    date = timezone.localdate(session.end_time) if session.end_time else timezone.localdate()
     
     # During cascade delete, project/customer/deliverable aggregates may already be
     # deleted - use create_if_missing=False to avoid creating ghost rows that cause
@@ -255,7 +255,7 @@ def update_aggregates_on_session_save(sender, instance, created, **kwargs):
             if old_values['end_time']:
                 # Session was completed, now it's not - subtract old values
                 workspace_owner = get_workspace_owner(instance.project_timer.project.customer.user)
-                date = old_values['end_time'].date()
+                date = timezone.localdate(old_values['end_time'])
                 
                 with transaction.atomic():
                     update_workspace_aggregate(workspace_owner, -old_values['duration_seconds'], -old_values['cost'], -1)
@@ -273,7 +273,7 @@ def update_aggregates_on_session_save(sender, instance, created, **kwargs):
     # Calculate new values
     new_time = instance.duration_seconds()
     new_cost = instance.cost()
-    date = instance.end_time.date()
+    date = timezone.localdate(instance.end_time)
     
     with transaction.atomic():
         if created:
@@ -295,7 +295,7 @@ def update_aggregates_on_session_save(sender, instance, created, **kwargs):
                     # Session was completed before - calculate delta
                     time_delta = new_time - old_values['duration_seconds']
                     cost_delta = new_cost - old_values['cost']
-                    old_date = old_values['end_time'].date()
+                    old_date = timezone.localdate(old_values['end_time'])
                     
                     # Update workspace aggregate
                     update_workspace_aggregate(workspace_owner, time_delta, cost_delta, 0)
