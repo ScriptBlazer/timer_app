@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -29,4 +30,31 @@ class Customer(models.Model):
         for project in self.projects.all():
             total += project.total_cost()
         return round(total, 2)
+
+    def _customer_aggregate(self):
+        try:
+            return self.customer_aggregate
+        except ObjectDoesNotExist:
+            return None
+
+    def display_total_time_seconds(self):
+        """UI total time: prefer analytics aggregate, fallback to live calculation."""
+        aggregate = self._customer_aggregate()
+        if aggregate is not None:
+            return aggregate.total_time_seconds
+        return self.total_duration_seconds()
+
+    def display_total_cost(self):
+        """UI total cost: prefer analytics aggregate, fallback to live calculation."""
+        aggregate = self._customer_aggregate()
+        if aggregate is not None:
+            return float(aggregate.total_cost)
+        return self.total_cost()
+
+    def display_project_count(self):
+        """UI project count: prefer analytics aggregate, fallback to live count."""
+        aggregate = self._customer_aggregate()
+        if aggregate is not None:
+            return aggregate.project_count
+        return self.projects.count()
 

@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Count
 from .models import Customer
 from .forms import CustomerForm
 from timer.models import get_workspace_users, get_workspace_owner, is_workspace_owner
@@ -10,7 +11,11 @@ from timer.models import get_workspace_users, get_workspace_owner, is_workspace_
 def customer_list(request):
     """List all customers for the workspace"""
     workspace_users = get_workspace_users(request.user)
-    customers = Customer.objects.filter(user__in=workspace_users).order_by('-created_at')
+    customers = (
+        Customer.objects.filter(user__in=workspace_users)
+        .select_related('customer_aggregate')
+        .order_by('-created_at')
+    )
     return render(request, 'customers/customer_list.html', {'customers': customers})
 
 
@@ -18,8 +23,16 @@ def customer_list(request):
 def customer_detail(request, pk):
     """Show customer detail and their projects"""
     workspace_users = get_workspace_users(request.user)
-    customer = get_object_or_404(Customer, pk=pk, user__in=workspace_users)
-    projects = customer.projects.all()
+    customer = get_object_or_404(
+        Customer.objects.select_related('customer_aggregate'),
+        pk=pk,
+        user__in=workspace_users,
+    )
+    projects = (
+        customer.projects.select_related('project_aggregate')
+        .annotate(timer_count=Count('project_timers'))
+        .order_by('-created_at')
+    )
     return render(request, 'customers/customer_detail.html', {
         'customer': customer,
         'projects': projects

@@ -399,12 +399,21 @@ def update_workspace_timer_count_delete(sender, instance, **kwargs):
 # Signals for Customer, Project, Deliverable counts
 @receiver(post_save, sender='customers.Customer')
 def update_workspace_customer_count(sender, instance, created, **kwargs):
-    """Update workspace aggregate customer count"""
+    """Update workspace aggregate customer count and ensure customer aggregate exists"""
     workspace_owner = get_workspace_owner(instance.user)
     aggregate = get_or_create_workspace_aggregate(workspace_owner)
     
     if created:
         aggregate.total_customers += 1
+        CustomerAggregate.objects.get_or_create(
+            customer=instance,
+            defaults={
+                'total_time_seconds': 0,
+                'total_cost': 0,
+                'session_count': 0,
+                'project_count': 0,
+            },
+        )
     aggregate.save(update_fields=['total_customers', 'last_updated'])
 
 
@@ -443,6 +452,14 @@ def update_workspace_project_count(sender, instance, created, **kwargs):
             aggregate.active_projects += 1
         elif instance.status == 'completed':
             aggregate.completed_projects += 1
+        ProjectAggregate.objects.get_or_create(
+            project=instance,
+            defaults={
+                'total_time_seconds': 0,
+                'total_cost': 0,
+                'session_count': 0,
+            },
+        )
     else:
         # Project status might have changed - handle transition
         old_status = getattr(instance, '_old_status', None)
