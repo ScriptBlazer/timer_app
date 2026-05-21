@@ -43,9 +43,9 @@
             {% for customer in customers %}
             <tr data-original-index="{{ forloop.counter }}">
                 <td><a href="{% url 'customer_detail' customer.pk %}" title="{{ customer.name }}">{{ customer.name|truncate_chars:20 }}</a></td>
-                <td>{{ customer.projects.count }}</td>
-                <td class="hide-mobile">{{ customer.total_duration_seconds|format_duration }}</td>
-                <td class="hide-mobile">{{ customer.total_cost|format_currency }}</td>
+                <td>{{ customer.display_project_count }}</td>
+                <td class="hide-mobile">{{ customer.display_total_time_seconds|format_duration }}</td>
+                <td class="hide-mobile">{{ customer.display_total_cost|format_currency }}</td>
                 <td class="actions">
                     <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-small">View</a>
                     <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-small btn-secondary">Edit</a>

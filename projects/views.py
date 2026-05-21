@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Count
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from .models import Project
@@ -17,7 +18,12 @@ from deliverables.models import Deliverable
 @login_required
 def project_list(request):
     """List all projects across all customers for the current user"""
-    projects = Project.objects.filter(customer__user__in=get_workspace_users(request.user)).select_related('customer').order_by('-created_at')
+    projects = (
+        Project.objects.filter(customer__user__in=get_workspace_users(request.user))
+        .select_related('customer', 'project_aggregate')
+        .annotate(timer_count=Count('project_timers'))
+        .order_by('-created_at')
+    )
     return render(request, 'projects/project_list.html', {'projects': projects})
 
 
