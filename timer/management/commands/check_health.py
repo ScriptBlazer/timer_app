@@ -54,12 +54,16 @@ class Command(BaseCommand):
             errors = [f"Invalid JSON response: {str(e)}"]
             self.stdout.write(self.style.ERROR(f'Invalid JSON response: {e}'))
         
-        # Format timestamp for display
+        # Format timestamp for display in UK local time
         try:
-            from datetime import datetime
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-            formatted_time = dt.strftime('%Y-%m-%d %H:%M:%S')
-        except:
+            from django.utils.dateparse import parse_datetime
+            dt = parse_datetime(timestamp.replace('Z', '+00:00'))
+            if dt is None:
+                dt = timezone.now()
+            elif timezone.is_naive(dt):
+                dt = timezone.make_aware(dt)
+            formatted_time = timezone.localtime(dt).strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
             formatted_time = timestamp
         
         # Build Telegram message

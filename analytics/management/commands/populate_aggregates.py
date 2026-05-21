@@ -140,7 +140,7 @@ class Command(BaseCommand):
         daily_stats = defaultdict(lambda: {'time': 0, 'cost': 0, 'count': 0})
         
         for session in completed_sessions.iterator(chunk_size=1000):
-            date = session.end_time.date()
+            date = timezone.localdate(session.end_time)
             daily_stats[date]['time'] += session.duration_seconds()
             daily_stats[date]['cost'] += session.cost()
             daily_stats[date]['count'] += 1
